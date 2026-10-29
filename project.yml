@@ -37,7 +37,8 @@ targets:
       - path: FislikWidgets
       - path: Fislik/Shared
       - path: Fislik/DesignSystem/Icons.swift
-      - path: Fislik/Resources
+      - path: Fislik/Resources/Assets.xcassets
+      - path: Fislik/Resources/Fonts
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.selamet.fislik.widgets
