@@ -149,6 +149,7 @@ struct NotificationPrefsView: View {
     @Environment(AppModel.self) private var app
     @State private var prefs = NotificationPrefs.current
     @State private var pushStatus: UNAuthorizationStatus = .notDetermined
+    @State private var syncing = false
     @AppStorage("appearance") private var appearance = Appearance.system
     @AppStorage("language") private var language = "tr"
     @Environment(\.scenePhase) private var scenePhase
@@ -204,13 +205,22 @@ struct NotificationPrefsView: View {
         }
         .background(FColor.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .task { pushStatus = await PushManager.shared.authorizationStatus() }
+        .task {
+            pushStatus = await PushManager.shared.authorizationStatus()
+            if let remote = try? await API.preferences(), remote != prefs {
+                syncing = true
+                prefs = remote
+                NotificationPrefs.current = remote
+            }
+        }
         .onChange(of: scenePhase) { _, p in
             if p == .active { Task { pushStatus = await PushManager.shared.authorizationStatus() } }
         }
         .onChange(of: prefs) { _, new in
             NotificationPrefs.current = new
             LocalNotifier.scheduleReminders(monthEnd: new.monthEndReminder, weekly: new.weeklyDigest)
+            // Values just loaded from the server don't need to be written back.
+            if syncing { syncing = false; return }
             Task { try? await API.savePreferences(new) }
         }
     }

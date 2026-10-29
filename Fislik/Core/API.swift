@@ -224,18 +224,30 @@ enum API {
         try await client.send(.post, "/notifications/read", body: ReadBody(ids: ids))
     }
 
-    /// Requires selamet/fislik-api#150; failures are ignored by callers.
+    static func preferences() async throws -> NotificationPrefs {
+        try await client.request(.get, "/notifications/preferences")
+    }
+
     static func savePreferences(_ prefs: NotificationPrefs) async throws {
         try await client.send(.put, "/notifications/preferences", body: prefs)
     }
 
-    // MARK: Devices (push; requires selamet/fislik-api#147)
+    // MARK: Devices (push)
 
-    struct DeviceBody: Encodable { let token: String; let platform: String; let appVersion: String }
+    struct DeviceBody: Encodable { let token: String; let platform: String; let environment: String; let appVersion: String }
+
+    /// APNs environment of this build: Xcode debug builds get sandbox tokens.
+    static var apnsEnvironment: String {
+        #if DEBUG
+        "sandbox"
+        #else
+        "production"
+        #endif
+    }
 
     static func registerDevice(token: String) async throws {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        try await client.send(.post, "/devices", body: DeviceBody(token: token, platform: "ios", appVersion: version))
+        try await client.send(.post, "/devices", body: DeviceBody(token: token, platform: "ios", environment: apnsEnvironment, appVersion: version))
     }
 
     static func unregisterDevice(token: String) async throws {
