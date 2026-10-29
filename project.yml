@@ -1,0 +1,46 @@
+name: Fislik
+options:
+  bundleIdPrefix: dev.selamet
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  developmentLanguage: tr
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+targets:
+  Fislik:
+    type: application
+    platform: iOS
+    sources:
+      - path: Fislik
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.selamet.fislik
+        PRODUCT_NAME: Fislik
+        INFOPLIST_FILE: Fislik/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+  FislikTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FislikTests
+    dependencies:
+      - target: Fislik
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Fislik:
+    build:
+      targets:
+        Fislik: all
+        FislikTests: [test]
+    test:
+      targets:
+        - FislikTests
