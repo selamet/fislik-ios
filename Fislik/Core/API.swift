@@ -224,6 +224,11 @@ enum API {
         try await client.send(.post, "/notifications/read", body: ReadBody(ids: ids))
     }
 
+    /// Requires selamet/fislik-api#150; failures are ignored by callers.
+    static func savePreferences(_ prefs: NotificationPrefs) async throws {
+        try await client.send(.put, "/notifications/preferences", body: prefs)
+    }
+
     // MARK: Devices (push; requires selamet/fislik-api#147)
 
     struct DeviceBody: Encodable { let token: String; let platform: String; let appVersion: String }

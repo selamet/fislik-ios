@@ -8,10 +8,6 @@ struct LoadErrorView: View {
     var body: some View { Button("Tekrar dene", action: retry) }
 }
 
-struct CreditsView: View { var body: some View { Text("Kredi") } }
-struct NotificationPrefsView: View { var body: some View { Text("Tercihler") } }
-struct ChangePasswordView: View { var body: some View { Text("Şifre") } }
-struct ProfileScreen: View { var body: some View { Text("Profil") } }
 
 struct AccountantTabView: View {
     var body: some View { Text("Mükellefler").fFont(30, .heavy) }
