@@ -2,11 +2,6 @@ import SwiftUI
 
 // Temporary stand-ins; each one is replaced by its feature issue.
 
-struct LoadErrorView: View {
-    let error: APIError
-    let retry: () -> Void
-    var body: some View { Button("Tekrar dene", action: retry) }
-}
 
 
 
