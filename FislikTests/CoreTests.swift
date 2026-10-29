@@ -97,3 +97,37 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(AppModel.parse(URL(string: "fislik://fis/r1?period=2026-10")!), .receipt(id: "r1", period: Period("2026-10")))
     }
 }
+
+final class QueryTests: XCTestCase {
+    private func receipt(_ merchant: String, total: String, processed: Bool = false, category: ExpenseCategory = .market) -> Receipt {
+        Receipt(id: UUID().uuidString, period: "2026-10", createdAt: Date(), imageUrl: nil, contentType: "image/jpeg", processed: processed, openIssue: nil,
+                extraction: Extraction(status: .done, merchantName: merchant, receiptDate: DateParsing.parse("2026-10-20"), totalAmount: Decimal(string: total), vatTotal: 0, vatBreakdown: [], docType: .fis, expenseCategory: category, edited: false),
+                uploadedBy: nil)
+    }
+
+    func testTextAndFilters() {
+        let p = Period("2026-10")!
+        var q = ReceiptQuery()
+        q.text = "mig"
+        XCTAssertTrue(q.matches(receipt("Migros", total: "10"), period: p, now: p))
+        XCTAssertFalse(q.matches(receipt("Shell", total: "10"), period: p, now: p))
+        q.text = ""
+        q.status = .processed
+        XCTAssertFalse(q.matches(receipt("Migros", total: "10"), period: p, now: p))
+        q.status = .all
+        q.minAmount = "100"
+        XCTAssertFalse(q.matches(receipt("Migros", total: "99,99"), period: p, now: p))
+        q.minAmount = ""
+        q.range = .thisMonth
+        XCTAssertFalse(q.matches(receipt("Migros", total: "1"), period: p.previous, now: p))
+    }
+
+    func testDuplicatesAndWrongMonth() {
+        let a = receipt("Getir", total: "164.50"), b = receipt("Getir", total: "164.50"), c = receipt("Getir", total: "1")
+        XCTAssertEqual([a, b, c].duplicateIds, [a.id, b.id])
+        var moved = a
+        moved.period = "2026-11"
+        XCTAssertTrue(moved.isWrongMonth)
+        XCTAssertEqual(moved.wrongMonthTarget, Period("2026-10"))
+    }
+}
