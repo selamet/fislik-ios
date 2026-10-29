@@ -9,9 +9,6 @@ struct LoadErrorView: View {
 }
 
 
-struct AccountantTabView: View {
-    var body: some View { Text("Mükellefler").fFont(30, .heavy) }
-}
 
 enum WidgetSnapshot {
     @MainActor static func update(from store: ReceiptStore, period: Period) {}
