@@ -53,6 +53,41 @@ struct MainView: View {
             }
         }
         .animation(.spring(duration: 0.35), value: app.sessionExpired)
+        .task {
+            NotificationsStore.shared.app = app
+            NotificationsStore.shared.startPolling()
+            PushManager.shared.onOpen = { [weak app] type, payload in
+                guard let app else { return }
+                app.pendingLink = AppModel.link(forNotification: type, payload: payload)
+                Task { await NotificationsStore.shared.refresh() }
+            }
+            await askForPushOnce()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active:
+                NotificationsStore.shared.startPolling()
+                UploadQueue.shared.pump()
+            case .background:
+                NotificationsStore.shared.stopPolling()
+            default: break
+            }
+        }
+    }
+
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("pushAsked") private var pushAsked = false
+
+    /// Ask for notification permission once after the first sign-in; afterwards just re-register.
+    private func askForPushOnce() async {
+        if pushAsked {
+            if await PushManager.shared.authorizationStatus() == .authorized {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+            return
+        }
+        pushAsked = true
+        _ = await PushManager.shared.requestAuthorization()
     }
 }
 

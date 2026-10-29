@@ -20,7 +20,14 @@ struct ClientTabView: View {
                 }
                 tab(.notifications) {
                     NavigationStack(path: $router.notificationsPath) {
-                        NotificationsScreen().navigationDestination(for: ClientRoute.self, destination: destination)
+                        NotificationsScreen { n, content in
+                            if let link = content.link {
+                                app.pendingLink = link
+                            } else if n.type == "grant_invite" || n.type.hasPrefix("invite_") {
+                                router.tab = .accountant
+                            }
+                        }
+                        .navigationDestination(for: ClientRoute.self, destination: destination)
                     }
                 }
                 tab(.profile) {
