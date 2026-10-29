@@ -11,11 +11,14 @@ struct FButtonStyle: ButtonStyle {
     var height: CGFloat = 50
     var fontSize: CGFloat = 15
     var radius: CGFloat = 14
+    /// Set for intrinsic-width buttons (with `.fixedSize()`); full-width buttons leave it 0.
+    var hPadding: CGFloat = 0
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .fFont(fontSize, .bold)
+            .padding(.horizontal, hPadding)
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .foregroundStyle(foreground)
@@ -61,8 +64,8 @@ extension ButtonStyle where Self == FButtonStyle {
     static var fSecondary: FButtonStyle { FButtonStyle(kind: .secondary) }
     static var fDark: FButtonStyle { FButtonStyle(kind: .dark) }
     static var fDanger: FButtonStyle { FButtonStyle(kind: .danger) }
-    static func f(_ kind: FButtonKind, height: CGFloat = 50, fontSize: CGFloat = 15, radius: CGFloat = 14) -> FButtonStyle {
-        FButtonStyle(kind: kind, height: height, fontSize: fontSize, radius: radius)
+    static func f(_ kind: FButtonKind, height: CGFloat = 50, fontSize: CGFloat = 15, radius: CGFloat = 14, hPadding: CGFloat = 0) -> FButtonStyle {
+        FButtonStyle(kind: kind, height: height, fontSize: fontSize, radius: radius, hPadding: hPadding)
     }
 }
 
@@ -122,24 +125,6 @@ struct FCountBadge: View {
             .frame(minWidth: 17, minHeight: 17)
             .background(FColor.danger, in: Capsule())
             .overlay(Capsule().strokeBorder(FColor.bg, lineWidth: 2))
-    }
-}
-
-/// Text link with leading chevron, e.g. "‹ Geri".
-struct FBackButton: View {
-    var title = "Geri"
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 0) {
-                Icon(.chevronLeft, size: 20)
-                Text(title).fFont(15, .bold)
-            }
-            .foregroundStyle(FColor.brand)
-            .frame(height: 44)
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -679,4 +664,90 @@ struct FMiniButton: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+// MARK: - Navigation header
+
+/// In-content navigation row ("‹ Geri   Title   trailing"), used instead of the
+/// system toolbar so the design's text back button isn't wrapped in iOS 26 glass.
+struct FNavHeader<Trailing: View>: View {
+    var back: String? = "Geri"
+    var title: String?
+    var onBack: (() -> Void)?
+    @ViewBuilder var trailing: () -> Trailing
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            if let title {
+                Text(title).fFont(15, .heavy).lineLimit(1).padding(.horizontal, 90)
+            }
+            HStack {
+                if let back {
+                    Button { (onBack ?? { dismiss() })() } label: {
+                        HStack(spacing: 0) {
+                            Icon(.chevronLeft, size: 22)
+                            Text(back).fFont(15, .bold)
+                        }
+                        .foregroundStyle(FColor.brand)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(back)
+                }
+                Spacer()
+                trailing()
+            }
+        }
+        .frame(height: 44)
+    }
+}
+
+extension FNavHeader where Trailing == EmptyView {
+    init(back: String? = "Geri", title: String? = nil, onBack: (() -> Void)? = nil) {
+        self.init(back: back, title: title, onBack: onBack) { EmptyView() }
+    }
+}
+
+// MARK: - Status bar backdrop
+
+extension View {
+    /// Keeps scrolled content from showing through the status bar area.
+    func fStatusBarBackdrop(_ color: Color = FColor.bg) -> some View {
+        overlay(alignment: .top) {
+            GeometryReader { geo in
+                color.opacity(0.96)
+                    .frame(height: geo.safeAreaInsets.top)
+                    .ignoresSafeArea(edges: .top)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+// MARK: - Self-sizing sheet
+
+private struct SheetHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+private struct SelfSizingSheet: ViewModifier {
+    @State private var height: CGFloat = 400
+
+    func body(content: Content) -> some View {
+        content
+            .fixedSize(horizontal: false, vertical: true)
+            .background(GeometryReader { Color.clear.preference(key: SheetHeightKey.self, value: $0.size.height) })
+            .onPreferenceChange(SheetHeightKey.self) { h in if h > 0 { height = h } }
+            .frame(maxHeight: .infinity, alignment: .top)
+            .presentationDetents([.height(height)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
+    }
+}
+
+extension View {
+    /// Bottom sheet sized to its content (the design's sheets hug their content).
+    func fSelfSizingSheet() -> some View { modifier(SelfSizingSheet()) }
 }

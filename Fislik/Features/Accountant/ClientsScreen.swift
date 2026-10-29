@@ -89,7 +89,7 @@ struct ClientsScreen: View {
                         Text("Henüz mükellefin yok").fFont(16, .heavy)
                         Text("Mükelleflerini davet et; fişlerini yükledikçe burada görürsün.").fFont(13, .medium).foregroundStyle(FColor.muted).multilineTextAlignment(.center)
                         Button { router.inviting = true } label: { FButtonLabel(title: "Mükellef davet et", icon: .userPlus) }
-                            .buttonStyle(.f(.primary, height: 46, fontSize: 14)).fixedSize()
+                            .buttonStyle(.f(.primary, height: 46, fontSize: 14, hPadding: 18)).fixedSize()
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
@@ -113,6 +113,7 @@ struct ClientsScreen: View {
             await notifications.refresh()
         }
         .background(FColor.bg.ignoresSafeArea())
+        .fStatusBarBackdrop()
         .toolbar(.hidden, for: .navigationBar)
         .task(id: router.period) { await store.load(router.period) }
     }

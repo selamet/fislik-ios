@@ -73,9 +73,7 @@ struct ReportIssueSheet: View {
         .padding(.top, 22)
         .padding(.bottom, 14)
         .background(FColor.bg.ignoresSafeArea())
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
+        .fSelfSizingSheet()
         .onAppear { focused = true }
     }
 

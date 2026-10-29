@@ -38,6 +38,7 @@ struct NotificationsScreen: View {
         }
         .refreshable { await store.refresh() }
         .background(FColor.bg.ignoresSafeArea())
+        .fStatusBarBackdrop()
         .toolbar(.hidden, for: .navigationBar)
         .task { await store.refresh() }
     }

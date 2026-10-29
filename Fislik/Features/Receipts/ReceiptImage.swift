@@ -65,15 +65,32 @@ struct ReceiptThumb: View {
     let receipt: Receipt
     var contentMode: ContentMode = .fill
     var showPaper = true
+    /// Solid backdrop instead of the soft gradient (detail header uses the design's #2a3937).
+    var backdrop: Color?
+    var alignment: Alignment = .center
     @State private var image: UIImage?
 
     var body: some View {
-        ZStack {
-            LinearGradient(colors: [Color(light: 0xEEF3F2, dark: 0x1A2524), Color(light: 0xDDE5E2, dark: 0x22302E)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            if let image {
+        ZStack(alignment: alignment) {
+            if let backdrop {
+                backdrop
+            } else {
+                LinearGradient(colors: [Color(light: 0xEEF3F2, dark: 0x1A2524), Color(light: 0xDDE5E2, dark: 0x22302E)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+            if let image, alignment == .top {
+                // Width-filling, top-anchored page (PDF header): the bottom is cropped, never the top.
+                GeometryReader { geo in
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geo.size.width)
+                }
+                .transition(.opacity)
+            } else if let image {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
                     .transition(.opacity)
             } else if showPaper {
                 ReceiptPaper(merchant: receipt.extraction?.merchantName ?? "", total: receipt.total.map(TR.plain) ?? "")

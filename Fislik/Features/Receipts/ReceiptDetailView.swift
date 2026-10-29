@@ -165,13 +165,15 @@ struct ReceiptDetailView: View {
         ZStack {
             Color(hex: 0x2A3937)
             if receipt.isPDF {
-                ReceiptThumb(receipt: receipt, contentMode: .fit, showPaper: false)
+                // e-Fatura: show the top of the first page, as in 2R.
+                ReceiptThumb(receipt: receipt, contentMode: .fill, showPaper: false, backdrop: .white, alignment: .top)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 6, topTrailingRadius: 6))
                     .padding(.top, 18).padding(.horizontal, 40)
                     .shadow(color: .black.opacity(0.4), radius: 20, y: -10)
             } else {
-                ReceiptThumb(receipt: receipt, contentMode: .fit, showPaper: true)
+                ReceiptThumb(receipt: receipt, contentMode: .fit, showPaper: true, backdrop: Color(hex: 0x2A3937))
                     .rotationEffect(.degrees(rotation))
-                    .padding(12)
+                    .padding(.vertical, 10)
             }
         }
         .frame(height: receipt.isPDF ? 250 : 210)
@@ -221,7 +223,7 @@ struct ReceiptDetailView: View {
             .foregroundStyle(.white)
             .padding(.horizontal, title == nil ? 0 : 10)
             .frame(minWidth: 28, minHeight: 28)
-            .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .background(Color(hex: 0x0C1A18).opacity(0.55), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -230,7 +232,7 @@ struct ReceiptDetailView: View {
         Button(action: action) {
             Icon(icon, size: 14).foregroundStyle(.white)
                 .frame(width: 30, height: 30)
-                .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .background(Color(hex: 0x0C1A18).opacity(0.55), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(.plain)
         .opacity(enabled ? 1 : 0)
@@ -466,7 +468,7 @@ struct ReceiptFieldsCard: View {
             }
             VStack(spacing: 7) {
                 row("İşyeri", e?.merchantName)
-                if let legal = e?.merchantLegalName { row("Ticari unvan", legal) }
+                if let legal = e?.merchantLegalName { row("Ticari unvan", legal.displayCased) }
                 row("VKN · Vergi dairesi", "\(e?.merchantTaxId ?? "—") · \(e?.merchantTaxOffice ?? "—")", warn: e?.merchantTaxId == nil && e?.docType == .fatura)
                 row(receipt.isFatura ? "Fatura no" : "Fiş no", e?.receiptNumber, mono: true)
                 row(receipt.isFatura ? "Fatura tarihi" : "Fiş tarihi", e?.receiptDate.map(TR.longDay), warn: receipt.isWrongMonth)

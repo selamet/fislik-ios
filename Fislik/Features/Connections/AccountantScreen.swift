@@ -73,8 +73,10 @@ struct AccountantScreen: View {
                             Icon(.shieldCheck, size: 16).foregroundStyle(FColor.brand).padding(.top, 2)
                             (Text("Muhasebecin fişlerini ") + Text("yalnızca görüntüleyebilir ve indirebilir").fontWeight(.bold).foregroundColor(FColor.ink) + Text(". Silme yetkisi yoktur; erişimi dilediğin an kaldırabilirsin."))
                                 .fFont(12, .medium).foregroundStyle(FColor.muted).lineSpacing(3)
+                            Spacer(minLength: 0)
                         }
                         .padding(.horizontal, 14).padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .fCard(radius: 16)
                     }
                 }
@@ -94,6 +96,7 @@ struct AccountantScreen: View {
             }
         }
         .background(FColor.bg.ignoresSafeArea())
+        .fStatusBarBackdrop()
         .toolbar(.hidden, for: .navigationBar)
         .task { await reload() }
     }
@@ -154,7 +157,7 @@ struct AccountantScreen: View {
             .padding(14)
             RowDivider()
             HStack(spacing: 0) {
-                stat("BAĞLI", TR.longDay(GrantDates.date(for: g)).replacingOccurrences(of: "Ağustos", with: "Ağu"))
+                stat("BAĞLI", "\(TR.shortDay(GrantDates.date(for: g))) \(Calendar.fislik.component(.year, from: GrantDates.date(for: g)))")
                 Rectangle().fill(FColor.ink.opacity(0.06)).frame(width: 1)
                 stat("İŞLENEN", "\(processed) fiş")
                 Rectangle().fill(FColor.ink.opacity(0.06)).frame(width: 1)
@@ -209,19 +212,18 @@ struct AccountantScreen: View {
             Icon(.clock, size: 17).foregroundStyle(FColor.warning)
             VStack(alignment: .leading, spacing: 1) {
                 Text(g.invitedEmail).fFont(13.5, .bold).lineLimit(1)
-                HStack(spacing: 0) {
-                    Text("Davet gönderildi · \(TR.shortDay(GrantDates.date(for: g))) · ")
-                    Button("Tekrar gönder") {
+                // One wrapping line like the design; "Tekrar gönder" is an inline link.
+                Text("Davet gönderildi · \(TR.shortDay(GrantDates.date(for: g))) · [Tekrar gönder](fislik-action://resend)")
+                    .fFont(11.5, .semibold)
+                    .foregroundStyle(FColor.muted)
+                    .tint(FColor.brand)
+                    .environment(\.openURL, OpenURLAction { _ in
                         act(g) {
                             try await API.revokeGrant(g.id)
                             _ = try await API.invite(email: g.invitedEmail)
                         }
-                    }
-                    .fontWeight(.bold)
-                    .foregroundStyle(FColor.brand)
-                }
-                .fFont(11.5, .semibold)
-                .foregroundStyle(FColor.muted)
+                        return .handled
+                    })
             }
             Spacer(minLength: 4)
             FStatusBadge(text: "Bekliyor", color: FColor.warning)
@@ -262,7 +264,7 @@ struct EmptyAccountantView: View {
                     .fFont(13.5, .medium).foregroundStyle(FColor.muted).multilineTextAlignment(.center).lineSpacing(3)
             }
             Button(action: onInvite) { FButtonLabel(title: "Muhasebeci davet et", icon: .userPlus) }
-                .buttonStyle(.f(.primary, height: 50, fontSize: 15))
+                .buttonStyle(.f(.primary, height: 50, fontSize: 15, hPadding: 20))
                 .fixedSize()
             (Text("Muhasebecin seni davet ettiyse ") + Text("Bildirimler").foregroundColor(FColor.brand).fontWeight(.bold) + Text("'de görünür."))
                 .fFont(12, .semibold).foregroundStyle(FColor.muted)

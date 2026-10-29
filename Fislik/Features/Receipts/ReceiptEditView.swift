@@ -145,14 +145,7 @@ struct ReceiptEditView: View {
                                 EditField(label: "Vergi dairesi", text: $draft.taxOffice)
                             }
                             GridRow {
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(draft.docType == .fatura ? "Fatura tarihi" : "Fiş tarihi").fFont(11.5, .bold).foregroundStyle(FColor.muted)
-                                    DatePicker("", selection: Binding(get: { draft.date ?? Date() }, set: { draft.date = $0 }), in: ...Date(), displayedComponents: .date)
-                                        .labelsHidden()
-                                        .environment(\.locale, TR.locale)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .frame(height: 42)
-                                }
+                                EditDateField(label: draft.docType == .fatura ? "Fatura tarihi" : "Fiş tarihi", date: $draft.date)
                                 EditField(label: draft.docType == .fatura ? "Fatura no" : "Fiş no", text: $draft.receiptNumber, fontSize: 13)
                             }
                             GridRow {
@@ -297,6 +290,44 @@ private struct EditField: View {
                 .frame(height: 42)
                 .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(error != nil ? FColor.danger : focused ? FColor.brand : FColor.ink.opacity(0.1), lineWidth: focused ? 1.5 : 1))
             if let error { Text(error).fFont(10.5, .semibold).foregroundStyle(FColor.danger) }
+        }
+    }
+}
+
+/// "22.10.2026 📅" field in the edit form's 42pt style; opens a graphical picker.
+private struct EditDateField: View {
+    let label: String
+    @Binding var date: Date?
+    @State private var picking = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label).fFont(11.5, .bold).foregroundStyle(FColor.muted)
+            Button { picking = true } label: {
+                HStack {
+                    Text(date.map(TR.dotted) ?? "GG.AA.YYYY").foregroundStyle(date == nil ? FColor.muted : FColor.ink)
+                    Spacer()
+                    Icon(.calendar, size: 14).foregroundStyle(FColor.muted)
+                }
+                .fFont(14, .semibold)
+                .monospacedDigit()
+                .padding(.horizontal, 11)
+                .frame(height: 42)
+                .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(FColor.ink.opacity(0.1)))
+            }
+            .buttonStyle(.plain)
+        }
+        .sheet(isPresented: $picking) {
+            VStack(spacing: 12) {
+                DatePicker("", selection: Binding(get: { date ?? Date() }, set: { date = $0 }), in: ...Date(), displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .environment(\.locale, TR.locale)
+                    .tint(FColor.brand)
+                Button("Tamam") { if date == nil { date = Date() }; picking = false }
+                    .buttonStyle(.fPrimary)
+            }
+            .padding(20)
+            .fSelfSizingSheet()
         }
     }
 }

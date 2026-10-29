@@ -85,7 +85,8 @@ final class DemoData: @unchecked Sendable {
     }
 
     private var receipts: [R] = [
-        R(id: "r1", merchant: "Migros", legal: "Migros Ticaret A.Ş.", day: 24, total: "1482.35", vat: "246.52", rates: [(20, "198.12"), (10, "48.40")], doc: "fis", processed: true, cat: "market", pay: "kredi_karti", taxId: "6220529513", office: "Büyük Mükellefler", number: "0042"),
+        R(id: "r1", merchant: "Migros", legal: "Migros Ticaret A.Ş.", day: 24, total: "1482.35", vat: "246.52", rates: [(20, "198.12"), (10, "18.40"), (1, "30.00")], doc: "fis", processed: true, cat: "market", pay: "kredi_karti", taxId: "6220529513", office: "Büyük Mükellefler", number: "0042"),
+        R(id: "r9", merchant: "ABDULLAH AKLAN UNLU MAMÜLLER SATIŞI", legal: "ABDULLAH AKLAN UNLU MAMÜLLER", day: 20, total: "450.00", vat: "40.91", rates: [(10, "40.91")], doc: "fis", processed: false, cat: "yemek", pay: "kredi_karti", number: "0029"),
         R(id: "r2", merchant: "Shell", legal: "Shell & Turcas Petrol A.Ş.", day: 23, total: "2350.00", vat: "391.67", rates: [(20, "391.67")], doc: "fis", processed: true, cat: "yakit", pay: "kredi_karti", taxId: "8150034725", office: "Boğaziçi", number: "1187"),
         R(id: "r3", merchant: "Trendyol", legal: "DSM Grup Danışmanlık İletişim ve Satış Tic. A.Ş.", day: 22, total: "899.90", vat: "149.98", rates: [(20, "149.98")], doc: "fatura", processed: false, issue: "Bu fatura şirket adına mı kesilmiş? VKN görünmüyor.", cat: "ofis", pay: "kredi_karti", office: "Maslak", number: "EAR2026000012345"),
         R(id: "r4", merchant: "A101", legal: "A101 Yeni Mağazacılık A.Ş.", day: 21, total: "236.70", vat: "21.52", rates: [(10, "21.52")], doc: "fis", processed: false, cat: "market", pay: "nakit", number: "3321"),

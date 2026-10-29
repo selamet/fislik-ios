@@ -152,6 +152,8 @@ struct ClientMonthView: View {
         }
         .fFont(12, .semibold)
         .foregroundStyle(FColor.muted)
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
     }
 
     private func matches(_ r: Receipt) -> Bool {
@@ -295,8 +297,10 @@ private struct AccountantReceiptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ReceiptThumb(receipt: receipt)
+            Color.clear
                 .aspectRatio(4 / 3, contentMode: .fit)
+                .overlay { ReceiptThumb(receipt: receipt, contentMode: receipt.isPDF ? .fill : .fit, alignment: receipt.isPDF ? .top : .center) }
+                .clipped()
                 .overlay(alignment: .topLeading) {
                     if selecting {
                         ZStack {

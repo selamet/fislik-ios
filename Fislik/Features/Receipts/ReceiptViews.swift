@@ -8,8 +8,10 @@ struct ReceiptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ReceiptThumb(receipt: receipt)
+            Color.clear
                 .aspectRatio(4 / 3, contentMode: .fit)
+                .overlay { ReceiptThumb(receipt: receipt, contentMode: receipt.isPDF ? .fill : .fit, alignment: receipt.isPDF ? .top : .center) }
+                .clipped()
                 .overlay(alignment: .topTrailing) {
                     VStack(alignment: .trailing, spacing: 4) {
                         ForEach(Array(receipt.badges(duplicate: duplicate).prefix(2).enumerated()), id: \.offset) { _, badge in
@@ -74,10 +76,10 @@ extension ReceiptCard {
         } else {
             Text(receipt.merchant).fFont(13, .heavy).lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit()
+                Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit().lineLimit(1).layoutPriority(1)
                 Spacer(minLength: 0)
                 if let vat = receipt.vat {
-                    Text("KDV \(TR.money(vat))").fFont(10, .semibold).foregroundStyle(FColor.faint).lineLimit(1)
+                    Text("KDV \(TR.money(vat))").fFont(10, .semibold).foregroundStyle(FColor.faint).lineLimit(1).minimumScaleFactor(0.8)
                 }
             }
         }
@@ -172,7 +174,9 @@ struct ReceiptRow: View {
                 .fFont(11.5, .semibold)
                 .foregroundStyle(FColor.muted)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
             }
+            .layoutPriority(1)
             Spacer(minLength: 4)
             VStack(alignment: .trailing, spacing: 1) {
                 Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit()
@@ -180,6 +184,7 @@ struct ReceiptRow: View {
                     Text("KDV \(TR.money(vat))").fFont(10.5, .semibold).foregroundStyle(FColor.faint)
                 }
             }
+            .fixedSize()
             if showChevron {
                 Icon(.chevronRight, size: 16).foregroundStyle(FColor.ink.opacity(0.3))
             }
@@ -255,25 +260,56 @@ struct TotalsCard: View {
     let summary: MonthSummary
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("TOPLAM").fFont(10, .heavy, tracking: 0.3).foregroundStyle(FColor.muted)
-                Text(TR.money(summary.totalAmount)).fFont(22, .heavy, tracking: -0.5).monospacedDigit()
-                    .minimumScaleFactor(0.7).lineLimit(1)
-            }
-            Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 5) {
-                Text("TOPLAM KDV · \(TR.money(summary.vatTotal))").fFont(10, .heavy, tracking: 0.3).foregroundStyle(FColor.muted)
-                HStack(spacing: 5) {
-                    ForEach(rates, id: \.0) { rate, amount in
-                        VatChip(rate: rate, amount: amount)
-                    }
+        // Design layout (chips beside the total) when it fits; with three VAT rates
+        // or large totals the chips move to their own full-width row instead of wrapping.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 10) {
+                total
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 5) {
+                    vatLabel
+                    chips
                 }
+                .fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline) {
+                    total
+                    Spacer(minLength: 8)
+                    vatLabel
+                }
+                ScrollView(.horizontal, showsIndicators: false) { chips }
+                    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .fCard(radius: 14)
+    }
+
+    private var total: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("TOPLAM").fFont(10, .heavy, tracking: 0.3).foregroundStyle(FColor.muted)
+            Text(TR.money(summary.totalAmount)).fFont(22, .heavy, tracking: -0.5).monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+        }
+    }
+
+    private var vatLabel: some View {
+        Text("TOPLAM KDV · \(TR.money(summary.vatTotal))")
+            .fFont(10, .heavy, tracking: 0.3)
+            .foregroundStyle(FColor.muted)
+            .lineLimit(1)
+            .fixedSize()
+    }
+
+    private var chips: some View {
+        HStack(spacing: 5) {
+            ForEach(rates, id: \.0) { rate, amount in
+                VatChip(rate: rate, amount: amount)
+            }
+        }
     }
 
     private var rates: [(Int, Decimal)] {

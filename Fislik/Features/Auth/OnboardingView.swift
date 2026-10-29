@@ -54,15 +54,7 @@ struct OnboardingView: View {
                 .padding(.top, 10)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Button {
-                if page < pages.count - 1 {
-                    withAnimation { page += 1 }
-                } else {
-                    app.finishOnboarding()
-                }
-            } label: {
-                Text(page < pages.count - 1 ? "Devam" : "Başla")
-            }
+            Button("Başla") { app.finishOnboarding() }
             .buttonStyle(.f(.primary, height: 52, fontSize: 16, radius: 16))
             .padding(.top, 24)
 
@@ -228,6 +220,8 @@ struct VatChip: View {
             Text(TR.money(amount)).fFont(10.5, .heavy)
         }
         .foregroundStyle(FColor.ink2)
+        .lineLimit(1)
+        .fixedSize()
         .padding(.horizontal, 7)
         .padding(.vertical, 2)
         .background(color.opacity(0.09), in: RoundedRectangle(cornerRadius: 7, style: .continuous))

@@ -5,26 +5,11 @@ import UserNotifications
 struct SubpageHeader: View {
     var back = "Profil"
     let title: String
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack {
-            Text(title).fFont(15, .heavy)
-            HStack {
-                Button { dismiss() } label: {
-                    HStack(spacing: 0) {
-                        Icon(.chevronLeft, size: 22)
-                        Text(back).fFont(15, .bold)
-                    }
-                    .foregroundStyle(FColor.brand)
-                }
-                .buttonStyle(.plain)
-                Spacer()
-            }
-        }
-        .padding(.leading, 8)
-        .padding(.trailing, 16)
-        .frame(height: 44)
+        FNavHeader(back: back, title: title)
+            .padding(.leading, 8)
+            .padding(.trailing, 16)
     }
 }
 
