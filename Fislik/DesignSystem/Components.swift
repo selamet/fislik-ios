@@ -173,6 +173,7 @@ struct FTextField: View {
     var contentType: UITextContentType?
     var autocapitalization: TextInputAutocapitalization = .sentences
     var submitLabel: SubmitLabel = .next
+    var height: CGFloat = 48
     var onSubmit: () -> Void = {}
 
     @State private var revealed = false
@@ -210,7 +211,7 @@ struct FTextField: View {
                 }
             }
             .padding(.horizontal, 13)
-            .frame(height: 48)
+            .frame(height: height)
             .background(focused ? FColor.card : FColor.field, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
