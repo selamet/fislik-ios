@@ -11,7 +11,6 @@ struct LoadErrorView: View {
 struct CreditsView: View { var body: some View { Text("Kredi") } }
 struct NotificationPrefsView: View { var body: some View { Text("Tercihler") } }
 struct ChangePasswordView: View { var body: some View { Text("Şifre") } }
-struct NotificationsScreen: View { var body: some View { Text("Bildirimler") } }
 struct ProfileScreen: View { var body: some View { Text("Profil") } }
 
 struct AccountantTabView: View {

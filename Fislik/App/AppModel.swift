@@ -150,7 +150,27 @@ final class AppModel {
         Keychain.clear()
         faceIDEnabled = false
         SessionCache.clear()
+        ReceiptStore.shared.reset()
+        NotificationsStore.shared.reset()
+        UploadQueue.shared.clearAll()
+        Task { await ReceiptImageLoader.shared.clear() }
+        PushManager.shared.setBadge(0)
         phase = .auth
+    }
+
+    /// Push payload → deep link (`type` + string payload values).
+    static func link(forNotification type: String, payload: [String: String]) -> DeepLink? {
+        let period = payload["period"].flatMap(Period.init)
+        switch type {
+        case "issue_opened":
+            return payload["receipt_id"].map { .receipt(id: $0, period: period) }
+        case "receipts_processed", "period_locked":
+            return period.map { .month($0) }
+        case "uploads_finished":
+            return .month(.current)
+        default:
+            return .notifications
+        }
     }
 
     // MARK: Deep links
