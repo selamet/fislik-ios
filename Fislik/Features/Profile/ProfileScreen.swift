@@ -15,7 +15,6 @@ struct ProfileScreen: View {
     @State private var error: String?
     @AppStorage("autoUploadAfterCapture") private var autoUpload = true
     @AppStorage("appearance") private var appearance = Appearance.system
-    @AppStorage("language") private var language = "tr"
 
     private var biometryAvailable: Bool { LAContext().canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) }
     private var version: String {
@@ -68,13 +67,22 @@ struct ProfileScreen: View {
                         RowDivider()
                         toggleRow(.camera, "Çekimden sonra otomatik yükle", subtitle: "Kapalıysa önce önizleme gösterilir", isOn: $autoUpload)
                         RowDivider()
-                        navRow(.sun, "Dil · Görünüm", trailing: "\(language == "en" ? "English" : "Türkçe") · \(appearance.label)") { push(.notificationPrefs) }
+                        navRow(.sun, "Görünüm", trailing: appearance.label) { push(.notificationPrefs) }
                     }
 
                     if let error { FBanner(icon: .circleAlert, tone: .danger, text: Text(error)) }
 
                     Button { confirmLogout = true } label: { FButtonLabel(title: "Çıkış yap", icon: .logOut) }
                         .buttonStyle(.f(.dangerOutline, height: 46, fontSize: 14))
+
+                    HStack(spacing: 14) {
+                        Link("Gizlilik", destination: APIConfig.webURL.appendingPathComponent("gizlilik"))
+                        Link("Koşullar", destination: APIConfig.webURL.appendingPathComponent("kosullar"))
+                        Link("Destek", destination: APIConfig.webURL.appendingPathComponent("destek"))
+                    }
+                    .fFont(12, .bold)
+                    .foregroundStyle(FColor.brand)
+                    .frame(maxWidth: .infinity)
 
                     HStack(spacing: 0) {
                         Button("Hesabı sil") { confirmDelete = true }.foregroundStyle(FColor.danger)
