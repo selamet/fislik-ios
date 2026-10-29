@@ -190,6 +190,12 @@ enum TR {
         return "\(c.day!) \(months[c.month! - 1]) \(c.year!)"
     }
 
+    /// "2 Ekim"
+    static func dayMonth(_ date: Date) -> String {
+        let c = comps(date)
+        return "\(c.day!) \(months[c.month! - 1])"
+    }
+
     /// "22.10.2026"
     static func dotted(_ date: Date) -> String {
         let c = comps(date)
