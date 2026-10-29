@@ -131,3 +131,15 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(moved.wrongMonthTarget, Period("2026-10"))
     }
 }
+
+final class DisplayCaseTests: XCTestCase {
+    func testDisplayCased() {
+        XCTAssertEqual("ABDULLAH AKLAN UNLU MAMÜLLER".displayCased, "Abdullah Aklan Unlu Mamüller")
+        XCTAssertEqual("KASAP HASAN".displayCased, "Kasap Hasan")
+        XCTAssertEqual("İSTANBUL ŞUBESİ".displayCased, "İstanbul Şubesi")
+        XCTAssertEqual("A101".displayCased, "A101")
+        XCTAssertEqual("BİM".displayCased, "BİM")
+        XCTAssertEqual("Türk Telekom".displayCased, "Türk Telekom")
+        XCTAssertEqual("SHELL TURCAS".displayCased, "Shell Turcas")
+    }
+}

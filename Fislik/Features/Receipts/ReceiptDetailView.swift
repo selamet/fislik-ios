@@ -468,7 +468,7 @@ struct ReceiptFieldsCard: View {
             }
             VStack(spacing: 7) {
                 row("İşyeri", e?.merchantName)
-                if let legal = e?.merchantLegalName { row("Ticari unvan", legal) }
+                if let legal = e?.merchantLegalName { row("Ticari unvan", legal.displayCased) }
                 row("VKN · Vergi dairesi", "\(e?.merchantTaxId ?? "—") · \(e?.merchantTaxOffice ?? "—")", warn: e?.merchantTaxId == nil && e?.docType == .fatura)
                 row(receipt.isFatura ? "Fatura no" : "Fiş no", e?.receiptNumber, mono: true)
                 row(receipt.isFatura ? "Fatura tarihi" : "Fiş tarihi", e?.receiptDate.map(TR.longDay), warn: receipt.isWrongMonth)

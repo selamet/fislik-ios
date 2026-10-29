@@ -220,6 +220,8 @@ struct VatChip: View {
             Text(TR.money(amount)).fFont(10.5, .heavy)
         }
         .foregroundStyle(FColor.ink2)
+        .lineLimit(1)
+        .fixedSize()
         .padding(.horizontal, 7)
         .padding(.vertical, 2)
         .background(color.opacity(0.09), in: RoundedRectangle(cornerRadius: 7, style: .continuous))

@@ -7,7 +7,7 @@ enum ReceiptFilter: Hashable, CaseIterable {
 /// Derived, display-ready facts about a receipt.
 extension Receipt {
     var merchant: String {
-        if let name = extraction?.merchantName?.nilIfBlank { return name }
+        if let name = extraction?.merchantName?.nilIfBlank { return name.displayCased }
         switch extraction?.status {
         case .pending?: return "Analiz ediliyor…"
         case .failed?: return "Okunamadı"
@@ -123,4 +123,19 @@ extension Array where Element == Receipt {
 
 extension Collection where Element == Receipt {
     var totalAmount: Decimal { reduce(0) { $0 + ($1.total ?? 0) } }
+}
+
+extension String {
+    /// "ABDULLAH AKLAN UNLU MAMÜLLER" → "Abdullah Aklan Unlu Mamüller". Mixed-case names and
+    /// short all-caps words that are likely brands or codes (A101, BİM, ŞOK) stay as they are.
+    var displayCased: String {
+        let letters = filter(\.isLetter)
+        guard letters.count > 4, letters == letters.uppercased(with: TR.locale) else { return self }
+        return split(separator: " ", omittingEmptySubsequences: false).map { word -> String in
+            let w = String(word)
+            if w.count <= 3 || w.contains(where: \.isNumber) { return w }
+            let lower = w.lowercased(with: TR.locale)
+            return lower.prefix(1).uppercased(with: TR.locale) + lower.dropFirst()
+        }.joined(separator: " ")
+    }
 }
