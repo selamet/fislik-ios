@@ -1,0 +1,9 @@
+# Xcode
+*.xcodeproj
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+.DS_Store
+# Secrets
+Fislik/Config/Secrets.xcconfig
