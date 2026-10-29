@@ -607,3 +607,76 @@ struct FToast: View {
         }
     }
 }
+
+// MARK: - Confirm dialog
+
+/// Centered modal card over a dimmed backdrop (2S, 2T, 2AH).
+struct FDialog<Content: View>: View {
+    let icon: FIcon
+    var tint: Color = FColor.brand
+    let title: String
+    var confirmTitle: String
+    var confirmKind: FButtonKind = .primary
+    var confirmIcon: FIcon?
+    var busy = false
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        ZStack {
+            Color(hex: 0x0C1A18).opacity(0.6).ignoresSafeArea().onTapGesture(perform: onCancel)
+            VStack(alignment: .leading, spacing: 10) {
+                FIconTile(icon: icon, size: 46, iconSize: 20, tint: tint)
+                Text(title).fFont(17, .heavy)
+                content()
+                HStack(spacing: 10) {
+                    Button("Vazgeç", action: onCancel).buttonStyle(.f(.secondary, height: 46, fontSize: 14))
+                    Button(action: onConfirm) {
+                        FButtonLabel(title: confirmTitle, icon: confirmIcon, loading: busy)
+                    }
+                    .buttonStyle(.f(confirmKind, height: 46, fontSize: 14))
+                    .disabled(busy)
+                }
+                .padding(.top, 8)
+            }
+            .padding(20)
+            .background(FColor.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .shadow(color: .black.opacity(0.35), radius: 30, y: 20)
+            .padding(.horizontal, 24)
+            .transition(.scale(scale: 0.95).combined(with: .opacity))
+        }
+    }
+}
+
+extension Text {
+    /// Dialog paragraph style.
+    func dialogMessage() -> some View {
+        fFont(13, .semibold).foregroundStyle(FColor.muted).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Small bordered action button used inside cards ("Düzelt", "Yeniden analiz et").
+struct FMiniButton: View {
+    let title: String
+    var icon: FIcon?
+    var color: Color = FColor.ink
+    var height: CGFloat = 34
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if let icon { Icon(icon, size: 13) }
+                Text(title)
+            }
+            .fFont(12.5, .bold)
+            .foregroundStyle(color)
+            .padding(.horizontal, 12)
+            .frame(height: height)
+            .background(FColor.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(FColor.lineStrong))
+        }
+        .buttonStyle(.plain)
+    }
+}
