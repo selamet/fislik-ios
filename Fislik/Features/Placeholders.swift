@@ -8,11 +8,9 @@ struct LoadErrorView: View {
     var body: some View { Button("Tekrar dene", action: retry) }
 }
 
-struct InviteAccountantSheet: View { var body: some View { Text("Davet") } }
 struct CreditsView: View { var body: some View { Text("Kredi") } }
 struct NotificationPrefsView: View { var body: some View { Text("Tercihler") } }
 struct ChangePasswordView: View { var body: some View { Text("Şifre") } }
-struct AccountantScreen: View { var body: some View { Text("Muhasebecim") } }
 struct NotificationsScreen: View { var body: some View { Text("Bildirimler") } }
 struct ProfileScreen: View { var body: some View { Text("Profil") } }
 
