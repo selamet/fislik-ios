@@ -2,24 +2,6 @@ import SwiftUI
 
 // Temporary screens; each one is replaced by its feature issue.
 
-struct OnboardingView: View {
-    @Environment(AppModel.self) private var app
-    var body: some View {
-        Button("Başla") { app.finishOnboarding() }.buttonStyle(.fPrimary).padding()
-    }
-}
-
-struct AuthFlowView: View {
-    var body: some View { Text("Giriş").fFont(24, .heavy) }
-}
-
-struct FaceIDLockView: View {
-    @Environment(AppModel.self) private var app
-    var body: some View {
-        Button("Face ID ile aç") { Task { await app.unlockWithFaceID() } }.buttonStyle(.fPrimary).padding()
-    }
-}
-
 struct CompanySetupView: View {
     @Environment(AppModel.self) private var app
     var body: some View {
