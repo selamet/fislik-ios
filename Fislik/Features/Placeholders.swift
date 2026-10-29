@@ -10,7 +10,6 @@ struct LoadErrorView: View {
 
 struct SubmitMonthSheet: View { var body: some View { Text("Gönder") } }
 struct InviteAccountantSheet: View { var body: some View { Text("Davet") } }
-struct ReceiptDetailView: View { let id: String; var body: some View { Text("Fiş") } }
 struct CreditsView: View { var body: some View { Text("Kredi") } }
 struct NotificationPrefsView: View { var body: some View { Text("Tercihler") } }
 struct ChangePasswordView: View { var body: some View { Text("Şifre") } }

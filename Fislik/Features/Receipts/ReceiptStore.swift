@@ -39,22 +39,28 @@ final class ReceiptStore {
             months[period] = MonthState(receipts: cached.receipts, summary: cached.summary, lock: cached.lock, submission: cached.submission, loaded: true, updatedAt: cached.savedAt)
         }
         do {
-            async let receipts = API.receipts(period)
-            async let summary = API.summary(period)
-            async let lock = API.periodLock(period)
-            async let submission = try? API.submission(period)
+            let clientId = clientId
+            async let receipts = Self.fetchReceipts(period, clientId: clientId)
+            async let summary = API.summary(period, clientId: clientId)
+            async let lock = API.periodLock(period, clientId: clientId)
+            async let submission = clientId == nil ? try? API.submission(period) : nil
             var state = MonthState(receipts: try await receipts, summary: try await summary, lock: try await lock, submission: await submission, loaded: true, updatedAt: Date())
             if state.receipts.isEmpty { state.summary = .empty }
             months[period] = state
             error = nil
             offline = false
             SessionCache.store(CachedMonth(state: state), key: cacheKey(period))
-            WidgetSnapshot.update(from: self, period: period)
+            if clientId == nil { WidgetSnapshot.update(from: self, period: period) }
         } catch let e as APIError {
             if e == .offline || { if case .transport = e { return true }; return false }() { offline = true }
             if months[period]?.loaded != true { error = e }
         } catch {}
         schedulePolling()
+    }
+
+    private static func fetchReceipts(_ period: Period, clientId: String?) async throws -> [Receipt] {
+        if let clientId { return try await API.clientReceipts(clientId, period) }
+        return try await API.receipts(period)
     }
 
     func refreshCredits() async {
@@ -85,7 +91,16 @@ final class ReceiptStore {
         }
     }
 
-    private func cacheKey(_ period: Period) -> String { "month-\(period.raw)" }
+    private func cacheKey(_ period: Period) -> String { "month-\(clientId.map { $0 + "-" } ?? "")\(period.raw)" }
+
+    /// Store scoped to one client of the signed-in accountant.
+    static func forClient(_ id: String) -> ReceiptStore {
+        let store = ReceiptStore()
+        store.clientId = id
+        return store
+    }
+
+    var isAccountantMode: Bool { clientId != nil }
 
     // MARK: Lookup
 
@@ -175,6 +190,18 @@ final class ReceiptStore {
     func submit(_ period: Period) async throws {
         let state = try await API.submit(period)
         months[period]?.submission = state
+    }
+
+    func setProcessed(_ receipt: Receipt, _ processed: Bool) async throws {
+        guard let clientId else { return }
+        try await API.setProcessed(clientId: clientId, receiptId: receipt.id, processed)
+        update(receipt.id) { $0.processed = processed }
+    }
+
+    func reportIssue(_ receipt: Receipt, message: String) async throws {
+        guard let clientId else { return }
+        let issue = try await API.openIssue(clientId: clientId, receiptId: receipt.id, message: message)
+        update(receipt.id) { $0.openIssue = issue }
     }
 
     func reset() {
