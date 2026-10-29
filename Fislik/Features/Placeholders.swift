@@ -1,26 +1,48 @@
 import SwiftUI
 
-// Temporary screens; each one is replaced by its feature issue.
+// Temporary stand-ins; each one is replaced by its feature issue.
 
-struct ClientTabView: View {
-    enum Tab { case receipts, accountant, notifications, profile }
-    @State private var tab = Tab.receipts
+struct UploadItemStub: Identifiable { let id = UUID(); var isDone = false }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            Text("Fişler").fFont(30, .heavy)
-            Spacer()
-            FTabBar(items: [
-                FTabItem(tab: .receipts, title: "Fişler", icon: .receipt),
-                FTabItem(tab: .accountant, title: "Muhasebecim", icon: .users),
-                FTabItem(tab: .notifications, title: "Bildirimler", icon: .bell),
-                FTabItem(tab: .profile, title: "Profil", icon: .user),
-            ], selection: $tab)
-        }
-    }
+@MainActor
+@Observable
+final class UploadQueue {
+    func items(for period: Period) -> [UploadItemStub] { [] }
 }
+
+struct UploadProgressCard: View {
+    let period: Period
+    var body: some View { EmptyView() }
+}
+
+struct UploadPlaceholderCards: View {
+    let period: Period
+    var body: some View { EmptyView() }
+}
+
+struct LoadErrorView: View {
+    let error: APIError
+    let retry: () -> Void
+    var body: some View { Button("Tekrar dene", action: retry) }
+}
+
+struct AddReceiptSheet: View { var body: some View { Text("Fiş Ekle") } }
+struct CameraScreen: View { var body: some View { Text("Kamera") } }
+struct SubmitMonthSheet: View { var body: some View { Text("Gönder") } }
+struct InviteAccountantSheet: View { var body: some View { Text("Davet") } }
+struct ReceiptDetailView: View { let id: String; var body: some View { Text("Fiş") } }
+struct SearchView: View { var body: some View { Text("Ara") } }
+struct CreditsView: View { var body: some View { Text("Kredi") } }
+struct NotificationPrefsView: View { var body: some View { Text("Tercihler") } }
+struct ChangePasswordView: View { var body: some View { Text("Şifre") } }
+struct AccountantScreen: View { var body: some View { Text("Muhasebecim") } }
+struct NotificationsScreen: View { var body: some View { Text("Bildirimler") } }
+struct ProfileScreen: View { var body: some View { Text("Profil") } }
 
 struct AccountantTabView: View {
     var body: some View { Text("Mükellefler").fFont(30, .heavy) }
+}
+
+enum WidgetSnapshot {
+    @MainActor static func update(from store: ReceiptStore, period: Period) {}
 }
