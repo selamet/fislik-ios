@@ -29,13 +29,17 @@ struct ClientTabView: View {
                     }
                 }
             }
+            if activePathEmpty {
             FTabBar(items: [
                 FTabItem(tab: .receipts, title: "Fişler", icon: .receipt),
                 FTabItem(tab: .accountant, title: "Muhasebecim", icon: .users),
                 FTabItem(tab: .notifications, title: "Bildirimler", icon: .bell, badge: app.unreadCount),
                 FTabItem(tab: .profile, title: "Profil", icon: .user),
             ], selection: $router.tab)
+            .transition(.move(edge: .bottom))
+            }
         }
+        .animation(.easeOut(duration: 0.2), value: activePathEmpty)
         .ignoresSafeArea(.keyboard)
         .environment(router)
         .environment(uploads)
@@ -52,6 +56,16 @@ struct ClientTabView: View {
         }
         .onAppear(perform: consumeLink)
         .onChange(of: app.pendingLink) { consumeLink() }
+    }
+
+    /// Pushed screens (detail, search, settings pages) hide the tab bar, as in the design.
+    private var activePathEmpty: Bool {
+        switch router.tab {
+        case .receipts: router.receiptsPath.isEmpty
+        case .notifications: router.notificationsPath.isEmpty
+        case .profile: router.profilePath.isEmpty
+        case .accountant: true
+        }
     }
 
     private func tab(_ t: ClientRouter.Tab, @ViewBuilder content: () -> some View) -> some View {
