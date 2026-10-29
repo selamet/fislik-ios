@@ -4,7 +4,7 @@ import SwiftUI
 struct ClientTabView: View {
     @Environment(AppModel.self) private var app
     @State private var router = ClientRouter()
-    @State private var uploads = UploadQueue()
+    @State private var uploads = UploadQueue.shared
 
     var body: some View {
         @Bindable var router = router

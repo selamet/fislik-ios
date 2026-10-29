@@ -23,18 +23,11 @@ struct ReceiptCard: View {
                 }
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(TR.shortDay(receipt.displayDate)).fFont(11, .semibold).foregroundStyle(FColor.muted)
+                    Text(dayLabel).fFont(11, .semibold).foregroundStyle(FColor.muted)
                     Spacer()
                     if receipt.isFatura { FTag(text: "Fatura").fFont(9.5, .heavy) }
                 }
-                Text(receipt.merchant).fFont(13, .heavy).lineLimit(1)
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit()
-                    Spacer(minLength: 0)
-                    if let vat = receipt.vat {
-                        Text("KDV \(TR.money(vat))").fFont(10, .semibold).foregroundStyle(FColor.faint).lineLimit(1)
-                    }
-                }
+                footer
             }
             .foregroundStyle(FColor.ink)
             .padding(.horizontal, 10)
@@ -47,6 +40,59 @@ struct ReceiptCard: View {
         .opacity(dimmed ? 0.92 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .combine)
+    }
+}
+
+extension ReceiptCard {
+    private var dayLabel: String {
+        Calendar.fislik.isDateInToday(receipt.createdAt) && receipt.extraction?.receiptDate == nil ? "Bugün" : TR.shortDay(receipt.displayDate)
+    }
+
+    /// 2M variants: analysing, queued (no credit), unreadable; otherwise merchant + totals.
+    @ViewBuilder
+    private var footer: some View {
+        if receipt.isPending {
+            HStack(spacing: 5) {
+                Icon(.sparkles, size: 13)
+                Text("Analiz ediliyor…")
+            }
+            .fFont(12, .bold)
+            .foregroundStyle(FColor.brand)
+            .modifier(Pulse())
+            Text("Tutar ve KDV okunuyor").fFont(10, .semibold).foregroundStyle(FColor.faint)
+        } else if receipt.isQueued {
+            Text("Analiz limiti doldu").fFont(12, .bold).foregroundStyle(FColor.muted)
+            Text("\(Period.current.renewalLabel)'da otomatik analiz").fFont(10, .semibold).foregroundStyle(FColor.faint)
+        } else if receipt.isFailed && receipt.extraction?.merchantName == nil {
+            HStack(spacing: 5) {
+                Icon(.triangleAlert, size: 13)
+                Text("Okunamadı")
+            }
+            .fFont(12, .bold)
+            .foregroundStyle(FColor.warning)
+            Text("Bilgileri elle gir →").fFont(10, .semibold).foregroundStyle(FColor.brand)
+        } else {
+            Text(receipt.merchant).fFont(13, .heavy).lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit()
+                Spacer(minLength: 0)
+                if let vat = receipt.vat {
+                    Text("KDV \(TR.money(vat))").fFont(10, .semibold).foregroundStyle(FColor.faint).lineLimit(1)
+                }
+            }
+        }
+    }
+}
+
+/// fPulse keyframes: opacity 1 → .45 → 1 over 1.6s.
+struct Pulse: ViewModifier {
+    @State private var dim = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(dim ? 0.45 : 1)
+            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: dim)
+            .onAppear { dim = true }
     }
 }
 
