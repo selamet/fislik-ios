@@ -94,6 +94,9 @@ final class APIClient: @unchecked Sendable {
         configuration.httpCookieAcceptPolicy = .never
         configuration.timeoutIntervalForRequest = 30
         configuration.waitsForConnectivity = false
+        #if DEBUG
+        if DemoMode.isOn { configuration.protocolClasses = [DemoURLProtocol.self] + (configuration.protocolClasses ?? []) }
+        #endif
         self.session = URLSession(configuration: configuration)
         self.baseURL = baseURL
     }

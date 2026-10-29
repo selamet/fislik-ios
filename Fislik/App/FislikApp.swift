@@ -42,6 +42,16 @@ enum Appearance: String, CaseIterable {
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-reset") {
+            if let domain = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: domain) }
+            Keychain.clear()
+        }
+        DemoMode.install()
+        if let i = ProcessInfo.processInfo.arguments.firstIndex(of: "-appearance"), i + 1 < ProcessInfo.processInfo.arguments.count {
+            UserDefaults.standard.set(ProcessInfo.processInfo.arguments[i + 1], forKey: "appearance")
+        }
+        #endif
         PushManager.shared.configure()
         return true
     }

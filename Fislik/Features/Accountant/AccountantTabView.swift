@@ -79,6 +79,7 @@ struct AccountantTabView: View {
         .ignoresSafeArea(.keyboard)
         .environment(router)
         .environment(clients)
+        .environment(UploadQueue.shared)
         .sheet(isPresented: $router.inviting) {
             InviteSheet(invitingAccountant: false) { Task { await clients.load(router.period, force: true) } }
         }
