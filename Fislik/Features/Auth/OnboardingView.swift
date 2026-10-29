@@ -54,15 +54,7 @@ struct OnboardingView: View {
                 .padding(.top, 10)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Button {
-                if page < pages.count - 1 {
-                    withAnimation { page += 1 }
-                } else {
-                    app.finishOnboarding()
-                }
-            } label: {
-                Text(page < pages.count - 1 ? "Devam" : "Başla")
-            }
+            Button("Başla") { app.finishOnboarding() }
             .buttonStyle(.f(.primary, height: 52, fontSize: 16, radius: 16))
             .padding(.top, 24)
 

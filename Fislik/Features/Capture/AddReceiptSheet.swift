@@ -76,9 +76,7 @@ struct AddReceiptSheet: View {
         .padding(.top, 22)
         .padding(.bottom, 12)
         .background(FColor.bg.ignoresSafeArea())
-        .presentationDetents([.height(400)])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
+        .fSelfSizingSheet()
         .photosPicker(isPresented: $pickingPhotos, selection: $photos, maxSelectionCount: 30, matching: .images, preferredItemEncoding: .compatible)
         .fileImporter(isPresented: $pickingPDF, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { result in
             if case .success(let urls) = result {

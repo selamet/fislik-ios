@@ -108,6 +108,7 @@ struct ProfileScreen: View {
         }
         .animation(.easeOut(duration: 0.18), value: confirmLogout || confirmDelete)
         .background(FColor.bg.ignoresSafeArea())
+        .fStatusBarBackdrop()
         .toolbar(.hidden, for: .navigationBar)
         .task { await load() }
     }

@@ -71,7 +71,7 @@ struct ExportSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(on ? .clear : FColor.lineStrong, style: StrokeStyle(lineWidth: 1, dash: [3, 2])))
                             }
                             .buttonStyle(.plain)
-                            .disabled(!editingColumns)
+                            .allowsHitTesting(editingColumns)
                         }
                         if !editingColumns {
                             let hidden = ExportColumn.allCases.filter { !columns.contains($0) }
@@ -107,9 +107,7 @@ struct ExportSheet: View {
         .padding(.top, 22)
         .padding(.bottom, 10)
         .background(FColor.bg.ignoresSafeArea())
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
+        .fSelfSizingSheet()
         .sheet(item: $shareItem) { ShareSheet(items: [$0.url]) }
     }
 

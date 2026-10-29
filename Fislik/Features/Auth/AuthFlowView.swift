@@ -145,32 +145,25 @@ struct AuthPage<Content: View>: View {
     var back: String? = "Geri"
     var title: String?
     @ViewBuilder var content: () -> Content
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                content()
+        VStack(spacing: 0) {
+            if back != nil || title != nil {
+                FNavHeader(back: back, title: title)
+                    .padding(.leading, 12)
+                    .padding(.trailing, 20)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 32)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    content()
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            }
+            .scrollDismissesKeyboard(.interactively)
         }
-        .scrollDismissesKeyboard(.interactively)
         .background(FAuthBackground())
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            if let back {
-                ToolbarItem(placement: .topBarLeading) {
-                    FBackButton(title: back) { dismiss() }
-                }
-            }
-            if let title {
-                ToolbarItem(placement: .principal) {
-                    Text(title).fFont(15, .bold)
-                }
-            }
-        }
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 

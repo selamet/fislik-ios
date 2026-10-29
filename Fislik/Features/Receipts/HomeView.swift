@@ -80,8 +80,9 @@ struct HomeView: View {
         }
         .refreshable { await store.refreshAll(period) }
         .background(FColor.bg.ignoresSafeArea())
+        .fStatusBarBackdrop()
         .overlay(alignment: .bottomTrailing) {
-            if !month.lock.locked {
+            if !month.lock.locked && !(month.loaded && receipts.isEmpty && uploads.items(for: period).isEmpty) {
                 CameraFAB { router.sheet = .addReceipt }
                     .padding(.trailing, 16)
                     .padding(.bottom, 16)
@@ -169,6 +170,21 @@ struct HomeView: View {
         banners
         UploadProgressCard(period: period)
 
+        if receipts.isEmpty && month.lock.locked {
+            VStack(spacing: 6) {
+                Icon(.inbox, size: 24).foregroundStyle(FColor.faint)
+                Text("Bu ayda fiş yok").fFont(15, .heavy)
+                Text("Yeni fişlerin ilk açık aya eklenir.").fFont(13, .medium).foregroundStyle(FColor.muted)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 60)
+        } else {
+            monthBody(receipts: receipts, visible: visible, dupes: dupes)
+        }
+    }
+
+    @ViewBuilder
+    private func monthBody(receipts: [Receipt], visible: [Receipt], dupes: Set<String>) -> some View {
         if !listLayout {
             HStack(spacing: 8) {
                 CreditsPill(credits: store.credits) { router.receiptsPath.append(.credits) }
@@ -367,10 +383,10 @@ struct EmptyMonthView: View {
 
             HStack(spacing: 10) {
                 Button(action: onCamera) { FButtonLabel(title: "Fiş Çek", icon: .camera) }
-                    .buttonStyle(.f(.primary, height: 46, fontSize: 14))
+                    .buttonStyle(.f(.primary, height: 46, fontSize: 14, hPadding: 18))
                     .fixedSize()
                 Button(action: onGallery) { FButtonLabel(title: "Galeriden Seç", icon: .images) }
-                    .buttonStyle(.f(.secondary, height: 46, fontSize: 14))
+                    .buttonStyle(.f(.secondary, height: 46, fontSize: 14, hPadding: 16))
                     .fixedSize()
             }
 

@@ -59,8 +59,18 @@ final class ScreenTour: XCTestCase {
     }
 
     private func dismissSheet() {
-        app.swipeDown(velocity: .fast)
-        Thread.sleep(forTimeInterval: 0.6)
+        if app.keyboards.count > 0 { app.swipeDown(velocity: .slow) }
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+        start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
+        Thread.sleep(forTimeInterval: 0.8)
+    }
+
+    private func scrollTo(_ text: String) {
+        for _ in 0..<5 {
+            let el = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+            if el.exists && el.isHittable { return }
+            app.swipeUp(velocity: .slow)
+        }
     }
 
     func testAuthScreens() {
@@ -79,7 +89,7 @@ final class ScreenTour: XCTestCase {
     func testClientScreens() {
         for mode in ["light", "dark"] {
             prefix = "c-\(mode)-"
-            launch(["-demo", "client", "-appearance", mode])
+            launch(["-reset", "-demo", "client", "-appearance", mode])
             shot("01-home-grid", wait: 3)
             app.swipeUp()
             shot("02-home-grid-scrolled")
@@ -106,14 +116,15 @@ final class ScreenTour: XCTestCase {
             tap("Vazgeç")
             back()
 
+            scrollTo("Starbucks")
             tapContaining("Starbucks")
             shot("10-detail-wrong-month", wait: 1.5)
             back()
-            app.swipeUp()
+            scrollTo("Türk Telekom")
             tapContaining("Türk Telekom")
             shot("11-detail-pdf", wait: 2)
             back()
-            app.swipeDown()
+            app.swipeDown(); app.swipeDown()
 
             tap("Ara")
             shot("12-search")
@@ -160,12 +171,13 @@ final class ScreenTour: XCTestCase {
 
     func testAccountantScreens() {
         prefix = "x-"
-        launch(["-demo", "accountant", "-appearance", "light"])
+        launch(["-reset", "-demo", "accountant", "-appearance", "light"])
         shot("01-clients", wait: 3)
         tapContaining("Ayşe Yıldırım")
         shot("02-client-month", wait: 2)
         tap("Seç")
         tapContaining("A101")
+        scrollTo("Starbucks")
         tapContaining("Starbucks")
         shot("03-selecting")
         tap("Vazgeç")

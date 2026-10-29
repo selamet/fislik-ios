@@ -26,11 +26,11 @@ struct LoadErrorView: View {
                     retry()
                     Task { try? await Task.sleep(for: .seconds(1)); retrying = false }
                 } label: { FButtonLabel(title: "Tekrar dene", icon: .rotateCw, loading: retrying) }
-                    .buttonStyle(.f(.primary, height: 46, fontSize: 14))
+                    .buttonStyle(.f(.primary, height: 46, fontSize: 14, hPadding: 18))
                     .fixedSize()
                 if let onShowCache {
                     Button("Önbellekten göster", action: onShowCache)
-                        .buttonStyle(.f(.secondary, height: 46, fontSize: 14))
+                        .buttonStyle(.f(.secondary, height: 46, fontSize: 14, hPadding: 16))
                         .fixedSize()
                 }
             }

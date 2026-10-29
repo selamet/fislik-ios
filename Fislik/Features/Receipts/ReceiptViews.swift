@@ -8,8 +8,10 @@ struct ReceiptCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ReceiptThumb(receipt: receipt)
+            Color.clear
                 .aspectRatio(4 / 3, contentMode: .fit)
+                .overlay { ReceiptThumb(receipt: receipt, contentMode: receipt.isPDF ? .fill : .fit, alignment: receipt.isPDF ? .top : .center) }
+                .clipped()
                 .overlay(alignment: .topTrailing) {
                     VStack(alignment: .trailing, spacing: 4) {
                         ForEach(Array(receipt.badges(duplicate: duplicate).prefix(2).enumerated()), id: \.offset) { _, badge in
@@ -74,10 +76,10 @@ extension ReceiptCard {
         } else {
             Text(receipt.merchant).fFont(13, .heavy).lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit()
+                Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit().lineLimit(1).layoutPriority(1)
                 Spacer(minLength: 0)
                 if let vat = receipt.vat {
-                    Text("KDV \(TR.money(vat))").fFont(10, .semibold).foregroundStyle(FColor.faint).lineLimit(1)
+                    Text("KDV \(TR.money(vat))").fFont(10, .semibold).foregroundStyle(FColor.faint).lineLimit(1).minimumScaleFactor(0.8)
                 }
             }
         }
@@ -172,7 +174,9 @@ struct ReceiptRow: View {
                 .fFont(11.5, .semibold)
                 .foregroundStyle(FColor.muted)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
             }
+            .layoutPriority(1)
             Spacer(minLength: 4)
             VStack(alignment: .trailing, spacing: 1) {
                 Text(TR.money(receipt.total)).fFont(14, .heavy).monospacedDigit()
@@ -180,6 +184,7 @@ struct ReceiptRow: View {
                     Text("KDV \(TR.money(vat))").fFont(10.5, .semibold).foregroundStyle(FColor.faint)
                 }
             }
+            .fixedSize()
             if showChevron {
                 Icon(.chevronRight, size: 16).foregroundStyle(FColor.ink.opacity(0.3))
             }

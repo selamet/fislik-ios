@@ -21,7 +21,7 @@ struct InviteSheet: View {
             }
             VStack(alignment: .leading, spacing: 6) {
                 FFieldLabel(text: invitingAccountant ? "Muhasebeci e-postası" : "Mükellef e-postası")
-                TextField("ornek@firma.com", text: $email)
+                TextField("", text: $email, prompt: Text(verbatim: "ornek@firma.com").foregroundColor(FColor.muted.opacity(0.7)))
                     .keyboardType(.emailAddress)
                     .textContentType(.emailAddress)
                     .textInputAutocapitalization(.never)
@@ -74,9 +74,7 @@ struct InviteSheet: View {
         .padding(.top, 22)
         .padding(.bottom, 16)
         .background(FColor.bg.ignoresSafeArea())
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
+        .fSelfSizingSheet()
         .onAppear { focused = true }
         .onChange(of: email) { error = nil }
     }

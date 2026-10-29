@@ -99,9 +99,7 @@ struct SubmitMonthSheet: View {
         .padding(.top, 22)
         .padding(.bottom, 10)
         .background(FColor.bg.ignoresSafeArea())
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
+        .fSelfSizingSheet()
         .task {
             await store.load(period, force: true)
             await store.refreshGrants()

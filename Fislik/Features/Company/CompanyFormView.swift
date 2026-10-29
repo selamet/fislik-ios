@@ -75,6 +75,9 @@ struct CompanyFormView: View {
     var body: some View {
         let errors = showErrors ? draft.errors : [:]
         VStack(spacing: 0) {
+            if mode == .edit {
+                FNavHeader(back: "Profil").padding(.leading, 12).padding(.trailing, 20)
+            }
             header
             ScrollView {
                 VStack(spacing: 12) {
@@ -118,13 +121,7 @@ struct CompanyFormView: View {
             .background(FColor.bg.shadow(color: FColor.ink.opacity(0.08), radius: 10, y: -10).ignoresSafeArea())
         }
         .background(FColor.bg.ignoresSafeArea())
-        .navigationBarBackButtonHidden(mode == .edit)
-        .toolbar(mode == .edit ? .visible : .hidden, for: .navigationBar)
-        .toolbar {
-            if mode == .edit {
-                ToolbarItem(placement: .topBarLeading) { FBackButton(title: "Profil") { dismiss() } }
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .task { await load() }
     }
 
