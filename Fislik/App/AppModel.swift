@@ -155,6 +155,7 @@ final class AppModel {
         UploadQueue.shared.clearAll()
         Task { await ReceiptImageLoader.shared.clear() }
         PushManager.shared.setBadge(0)
+        WidgetData.clear()
         phase = .auth
     }
 
