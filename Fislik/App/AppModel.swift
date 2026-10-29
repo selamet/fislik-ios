@@ -65,6 +65,14 @@ final class AppModel {
     // MARK: Launch
 
     func start() async {
+        #if DEBUG
+        if DemoMode.isOn {
+            onboardingDone = true
+            token = DemoMode.token
+            await restore()
+            return
+        }
+        #endif
         if faceIDEnabled, Keychain.hasBiometricToken {
             phase = .locked
             return

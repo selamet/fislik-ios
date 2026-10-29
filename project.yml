@@ -57,12 +57,25 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  FislikUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: FislikUITests
+    dependencies:
+      - target: Fislik
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Fislik
 schemes:
   Fislik:
     build:
       targets:
         Fislik: all
         FislikTests: [test]
+        FislikUITests: [test]
     test:
       targets:
         - FislikTests
+        - FislikUITests

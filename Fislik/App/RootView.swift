@@ -80,6 +80,9 @@ struct MainView: View {
 
     /// Ask for notification permission once after the first sign-in; afterwards just re-register.
     private func askForPushOnce() async {
+        #if DEBUG
+        if DemoMode.isOn { return }
+        #endif
         if pushAsked {
             if await PushManager.shared.authorizationStatus() == .authorized {
                 UIApplication.shared.registerForRemoteNotifications()
