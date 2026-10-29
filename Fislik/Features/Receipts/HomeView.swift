@@ -62,7 +62,7 @@ struct HomeView: View {
                     .padding(.bottom, 2)
 
                 if !month.loaded, let error = store.error {
-                    LoadErrorView(error: error) { Task { await store.refreshAll(period) } }
+                    LoadErrorView(error: error, retry: { Task { await store.refreshAll(period) } }, onShowCache: store.hasCache(period) ? { store.showCache(period) } : nil)
                 } else if month.loaded && receipts.isEmpty && uploads.items(for: period).isEmpty && !month.lock.locked {
                     EmptyMonthView(period: period, previous: store.state(period.previous)) {
                         router.sheet = .camera

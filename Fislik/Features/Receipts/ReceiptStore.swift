@@ -35,9 +35,7 @@ final class ReceiptStore {
 
     func load(_ period: Period, force: Bool = false) async {
         if !force, let m = months[period], m.loaded, let at = m.updatedAt, Date().timeIntervalSince(at) < 20 { return }
-        if months[period] == nil, let cached = SessionCache.load(CachedMonth.self, key: cacheKey(period)) {
-            months[period] = MonthState(receipts: cached.receipts, summary: cached.summary, lock: cached.lock, submission: cached.submission, loaded: true, updatedAt: cached.savedAt)
-        }
+        if months[period] == nil, Connectivity.shared.isOnline == false { showCache(period) }
         do {
             let clientId = clientId
             async let receipts = Self.fetchReceipts(period, clientId: clientId)
@@ -52,8 +50,12 @@ final class ReceiptStore {
             SessionCache.store(CachedMonth(state: state), key: cacheKey(period))
             if clientId == nil { WidgetSnapshot.update(from: self, period: period) }
         } catch let e as APIError {
-            if e == .offline || { if case .transport = e { return true }; return false }() { offline = true }
-            if months[period]?.loaded != true { error = e }
+            let unreachable = e == .offline || { if case .transport = e { return true }; return false }()
+            if unreachable { offline = true }
+            if months[period]?.loaded != true {
+                if e == .offline { showCache(period) }
+                if months[period]?.loaded != true { error = e }
+            }
         } catch {}
         schedulePolling()
     }
@@ -61,6 +63,17 @@ final class ReceiptStore {
     private static func fetchReceipts(_ period: Period, clientId: String?) async throws -> [Receipt] {
         if let clientId { return try await API.clientReceipts(clientId, period) }
         return try await API.receipts(period)
+    }
+
+    func hasCache(_ period: Period) -> Bool {
+        SessionCache.load(CachedMonth.self, key: cacheKey(period)) != nil
+    }
+
+    /// Shows the last cached copy of a month (offline / error fallback).
+    func showCache(_ period: Period) {
+        guard let cached = SessionCache.load(CachedMonth.self, key: cacheKey(period)) else { return }
+        months[period] = MonthState(receipts: cached.receipts, summary: cached.summary, lock: cached.lock, submission: cached.submission, loaded: true, updatedAt: cached.savedAt)
+        offline = true
     }
 
     func refreshCredits() async {
