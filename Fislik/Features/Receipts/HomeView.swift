@@ -47,6 +47,7 @@ struct HomeView: View {
     @AppStorage("homeLayout") private var listLayout = false
 
     private var period: Period { router.period }
+    private var isOffline: Bool { store.offline || !Connectivity.shared.isOnline }
     private var month: MonthState { store.state(period) }
 
     var body: some View {
@@ -87,6 +88,14 @@ struct HomeView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .overlay(alignment: .top) {
+            if let notice = uploads.notice {
+                FToast(text: notice) { uploads.notice = nil }
+            }
+        }
+        .onChange(of: Connectivity.shared.isOnline) { _, online in
+            if online { Task { await store.load(period, force: true) } }
+        }
         .task(id: period) {
             await store.load(period)
             if store.credits == nil { await store.refreshCredits() }
@@ -113,7 +122,7 @@ struct HomeView: View {
         HStack {
             FislikLogo()
             Spacer()
-            if store.offline {
+            if isOffline {
                 OfflinePill()
             } else {
                 HStack(spacing: 8) {
@@ -146,7 +155,7 @@ struct HomeView: View {
     }
 
     private func eyebrow(receipts: [Receipt]) -> String {
-        if store.offline, let at = month.updatedAt { return "FİŞLER · SON GÜNCELLEME \(TR.time(at))" }
+        if isOffline, let at = month.updatedAt { return "FİŞLER · SON GÜNCELLEME \(TR.time(at))" }
         let uploading = uploads.items(for: period).filter { !$0.isDone }.count
         if uploading > 0 { return "FİŞLER · \(receipts.count + uploading) FİŞ" }
         if listLayout && !receipts.isEmpty { return "FİŞLER · \(receipts.count) FİŞ · \(TR.money(month.summary.totalAmount))" }

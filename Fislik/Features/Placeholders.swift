@@ -2,32 +2,12 @@ import SwiftUI
 
 // Temporary stand-ins; each one is replaced by its feature issue.
 
-struct UploadItemStub: Identifiable { let id = UUID(); var isDone = false }
-
-@MainActor
-@Observable
-final class UploadQueue {
-    func items(for period: Period) -> [UploadItemStub] { [] }
-}
-
-struct UploadProgressCard: View {
-    let period: Period
-    var body: some View { EmptyView() }
-}
-
-struct UploadPlaceholderCards: View {
-    let period: Period
-    var body: some View { EmptyView() }
-}
-
 struct LoadErrorView: View {
     let error: APIError
     let retry: () -> Void
     var body: some View { Button("Tekrar dene", action: retry) }
 }
 
-struct AddReceiptSheet: View { var body: some View { Text("Fiş Ekle") } }
-struct CameraScreen: View { var body: some View { Text("Kamera") } }
 struct SubmitMonthSheet: View { var body: some View { Text("Gönder") } }
 struct InviteAccountantSheet: View { var body: some View { Text("Davet") } }
 struct ReceiptDetailView: View { let id: String; var body: some View { Text("Fiş") } }
