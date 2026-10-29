@@ -579,3 +579,31 @@ struct FlowLayout: Layout {
         }
     }
 }
+
+// MARK: - Toast
+
+/// Dark floating message that auto-dismisses after 4s.
+struct FToast: View {
+    let text: String
+    var icon: FIcon = .circleCheck
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Icon(icon, size: 16).foregroundStyle(FColor.success)
+            Text(text).fFont(13, .semibold).foregroundStyle(.white)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color(hex: 0x0C1A18).opacity(0.94), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .onTapGesture(perform: onDismiss)
+        .task {
+            try? await Task.sleep(for: .seconds(4))
+            onDismiss()
+        }
+    }
+}
