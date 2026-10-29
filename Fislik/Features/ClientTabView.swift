@@ -32,7 +32,7 @@ struct ClientTabView: View {
                 }
                 tab(.profile) {
                     NavigationStack(path: $router.profilePath) {
-                        ProfileScreen().navigationDestination(for: ClientRoute.self, destination: destination)
+                        ProfileScreen { router.profilePath.append($0) }.navigationDestination(for: ClientRoute.self, destination: destination)
                     }
                 }
             }
