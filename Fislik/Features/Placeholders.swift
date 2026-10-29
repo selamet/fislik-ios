@@ -31,7 +31,6 @@ struct CameraScreen: View { var body: some View { Text("Kamera") } }
 struct SubmitMonthSheet: View { var body: some View { Text("Gönder") } }
 struct InviteAccountantSheet: View { var body: some View { Text("Davet") } }
 struct ReceiptDetailView: View { let id: String; var body: some View { Text("Fiş") } }
-struct SearchView: View { var body: some View { Text("Ara") } }
 struct CreditsView: View { var body: some View { Text("Kredi") } }
 struct NotificationPrefsView: View { var body: some View { Text("Tercihler") } }
 struct ChangePasswordView: View { var body: some View { Text("Şifre") } }
