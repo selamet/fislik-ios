@@ -48,8 +48,6 @@ struct ClientTabView: View {
         }
         .animation(.easeOut(duration: 0.2), value: activePathEmpty)
         .ignoresSafeArea(.keyboard)
-        .environment(router)
-        .environment(uploads)
         .sheet(item: Binding(get: { router.sheet == .camera ? nil : router.sheet }, set: { router.sheet = $0 })) { sheet in
             switch sheet {
             case .addReceipt: AddReceiptSheet()
@@ -61,6 +59,9 @@ struct ClientTabView: View {
         .fullScreenCover(isPresented: Binding(get: { router.sheet == .camera }, set: { if !$0 { router.sheet = nil } })) {
             CameraScreen()
         }
+        // After the presentation modifiers so sheets and covers inherit them too.
+        .environment(router)
+        .environment(uploads)
         .onAppear(perform: consumeLink)
         .onChange(of: app.pendingLink) { consumeLink() }
     }
