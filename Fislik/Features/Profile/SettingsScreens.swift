@@ -16,7 +16,6 @@ struct SubpageHeader: View {
 /// 2Z — analysis credits.
 struct CreditsView: View {
     @State private var store = ReceiptStore.shared
-    @State private var showPlans = false
 
     var body: some View {
         let month = store.state(.current)
@@ -45,16 +44,6 @@ struct CreditsView: View {
                         RowDivider()
                         how(.clock, FColor.warning, Text("Limit dolunca fişler yine yüklenir, ") + Text("sıraya alınır").fontWeight(.heavy).foregroundColor(FColor.ink) + Text(" ve kredi yenilenince otomatik analiz edilir."))
                     }
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Daha fazla kredi mi gerekiyor?").fFont(13.5, .heavy)
-                            Text("Yoğun aylar için Pro plan · 250 analiz/ay").fFont(11.5, .semibold).foregroundStyle(FColor.muted)
-                        }
-                        Spacer()
-                        FMiniButton(title: "Planları gör", color: FColor.brand) { showPlans = true }
-                    }
-                    .padding(.horizontal, 14).padding(.vertical, 12)
-                    .fCard(radius: 16)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
@@ -67,7 +56,6 @@ struct CreditsView: View {
             await store.refreshCredits()
             await store.load(.current)
         }
-        .sheet(isPresented: $showPlans) { SafariView(url: APIConfig.webURL).ignoresSafeArea() }
     }
 
     private var hero: some View {
@@ -129,14 +117,13 @@ struct NotificationPrefs: Codable, Equatable {
     }
 }
 
-/// 2AA — notification preferences, language and appearance.
+/// 2AA — notification preferences and appearance.
 struct NotificationPrefsView: View {
     @Environment(AppModel.self) private var app
     @State private var prefs = NotificationPrefs.current
     @State private var pushStatus: UNAuthorizationStatus = .notDetermined
     @State private var syncing = false
     @AppStorage("appearance") private var appearance = Appearance.system
-    @AppStorage("language") private var language = "tr"
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -172,12 +159,8 @@ struct NotificationPrefsView: View {
                         RowDivider()
                         toggle("Haftalık özet", subtitle: "Pazartesi 09:00 · bu hafta kaç fiş, toplam", $prefs.weeklyDigest)
                     }
-                    section("DİL · GÖRÜNÜM")
+                    section("GÖRÜNÜM")
                     FGroupedCard {
-                        SettingsRow(title: "Dil") {
-                            FSegmented(options: [("tr", "Türkçe"), ("en", "English")], selection: $language, height: 34).fixedSize()
-                        }
-                        RowDivider()
                         SettingsRow(title: "Görünüm") {
                             FSegmented(options: Appearance.allCases.map { ($0, $0.label) }, selection: $appearance, height: 34).fixedSize()
                         }
