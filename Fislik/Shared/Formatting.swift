@@ -70,7 +70,12 @@ struct Period: Hashable, Comparable, Identifiable, Codable {
         self.init(year: c.year!, month: c.month!)
     }
 
-    static var current: Period { Period(date: Date()) }
+    static var current: Period {
+        #if DEBUG && !WIDGET_EXTENSION
+        if let fixed = DemoClock.period { return fixed }
+        #endif
+        return Period(date: Date())
+    }
 
     var raw: String { String(format: "%04d-%02d", year, month) }
 
@@ -251,3 +256,20 @@ extension String {
         return out.split(separator: "-").joined(separator: "-")
     }
 }
+
+#if DEBUG && !WIDGET_EXTENSION
+/// `-demoPeriod 2026-10` pins "this month" for demo screenshots.
+enum DemoClock {
+    static let period: Period? = {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-demoPeriod"), i + 1 < args.count else { return nil }
+        return Period(args[i + 1])
+    }()
+
+    /// The pinned month's 26th at 18:00, standing in for "now" in demo data.
+    static var now: Date {
+        guard let p = period else { return Date() }
+        return Calendar.fislik.date(from: DateComponents(year: p.year, month: p.month, day: 26, hour: 18)) ?? Date()
+    }
+}
+#endif

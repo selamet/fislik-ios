@@ -77,12 +77,13 @@ struct AccountantTabView: View {
         }
         .animation(.easeOut(duration: 0.2), value: pathEmpty)
         .ignoresSafeArea(.keyboard)
-        .environment(router)
-        .environment(clients)
-        .environment(UploadQueue.shared)
         .sheet(isPresented: $router.inviting) {
             InviteSheet(invitingAccountant: false) { Task { await clients.load(router.period, force: true) } }
         }
+        // After the presentation modifiers so sheets inherit them too.
+        .environment(router)
+        .environment(clients)
+        .environment(UploadQueue.shared)
         .onAppear(perform: consumeLink)
         .onChange(of: app.pendingLink) { consumeLink() }
     }

@@ -115,8 +115,8 @@ final class DemoData: @unchecked Sendable {
 
     private func date(day: Int, monthOffset: Int, hour: Int = 14) -> Date {
         let p = current.adding(monthOffset)
-        let today = Calendar.fislik.component(.day, from: Date())
-        let d = monthOffset == 0 ? min(day, today) : day
+        let today = Calendar.fislik.component(.day, from: DemoClock.now)
+        let d = monthOffset == 0 ? min(day, max(today, 1)) : day
         return Calendar.fislik.date(from: DateComponents(year: p.year, month: p.month, day: d, hour: hour, minute: 3)) ?? Date()
     }
 
@@ -136,7 +136,7 @@ final class DemoData: @unchecked Sendable {
             "id": r.id, "period": period.raw, "created_at": iso(date(day: r.day, monthOffset: r.monthOffset)),
             "image_url": "https://demo.fislik.local/img/\(r.id)", "content_type": r.pdf ? "application/pdf" : "image/jpeg",
             "processed": r.processed,
-            "open_issue": r.issue.map { ["id": "i-\(r.id)", "message": $0, "author_name": "Zeynep Kaya", "created_at": iso(Date().addingTimeInterval(-3600 * 5))] } ?? NSNull(),
+            "open_issue": r.issue.map { ["id": "i-\(r.id)", "message": $0, "author_name": "Zeynep Kaya", "created_at": iso(DemoClock.now.addingTimeInterval(-3600 * 5))] } ?? NSNull(),
             "extraction": extraction, "uploaded_by": r.byAccountant ? "acc-1" : NSNull(),
         ]
     }
@@ -160,12 +160,12 @@ final class DemoData: @unchecked Sendable {
     private var notifications: [[String: Any]] {
         let p = current.raw, prev = current.previous.raw
         let items: [(String, String, [String: Any], Date)] = [
-            ("n1", "issue_opened", ["receipt_id": "r3", "period": p, "message": "Bu fatura şirket adına mı kesilmiş?"], Date().addingTimeInterval(-3600 * 2)),
-            ("n2", "receipts_processed", ["period": p, "accountant_name": "Zeynep Kaya", "processed_count": 3], Date().addingTimeInterval(-3600 * 6)),
-            ("n3", "receipts_processed", ["period": prev, "accountant_name": "Zeynep Kaya", "processed_count": 21], Date().addingTimeInterval(-86400 * 26)),
-            ("n4", "period_locked", ["period": prev, "accountant_name": "Zeynep Kaya"], Date().addingTimeInterval(-86400 * 26 + 120)),
-            ("n5", "receipts_submitted", ["client_id": "c1", "client_name": "Ayşe Yıldırım", "period": p, "receipt_count": 8], Date().addingTimeInterval(-86400 * 3)),
-            ("n6", "invite_accepted", ["name": "Zeynep Kaya", "role": "accountant"], Date().addingTimeInterval(-86400 * 76)),
+            ("n1", "issue_opened", ["receipt_id": "r3", "period": p, "message": "Bu fatura şirket adına mı kesilmiş?"], DemoClock.now.addingTimeInterval(-3600 * 2)),
+            ("n2", "receipts_processed", ["period": p, "accountant_name": "Zeynep Kaya", "processed_count": 3], DemoClock.now.addingTimeInterval(-3600 * 6)),
+            ("n3", "receipts_processed", ["period": prev, "accountant_name": "Zeynep Kaya", "processed_count": 21], DemoClock.now.addingTimeInterval(-86400 * 26)),
+            ("n4", "period_locked", ["period": prev, "accountant_name": "Zeynep Kaya"], DemoClock.now.addingTimeInterval(-86400 * 26 + 120)),
+            ("n5", "receipts_submitted", ["client_id": "c1", "client_name": "Ayşe Yıldırım", "period": p, "receipt_count": 8], DemoClock.now.addingTimeInterval(-86400 * 3)),
+            ("n6", "invite_accepted", ["name": "Zeynep Kaya", "role": "accountant"], DemoClock.now.addingTimeInterval(-86400 * 76)),
         ]
         return items.map { id, type, payload, d in
             ["id": id, "type": type, "payload": payload, "read": readIds.contains(id), "created_at": iso(d)]
@@ -202,9 +202,9 @@ final class DemoData: @unchecked Sendable {
         case ("GET", "/receipts/summary"):
             return ok(summary(month(period)))
         case ("GET", "/receipts/period-lock"):
-            return ok(["locked": locked.contains(period ?? "") || period == current.adding(-2).raw, "locked_at": iso(Date().addingTimeInterval(-86400 * 20))])
+            return ok(["locked": locked.contains(period ?? "") || period == current.adding(-2).raw, "locked_at": iso(DemoClock.now.addingTimeInterval(-86400 * 20))])
         case ("GET", "/receipts/submission"):
-            let sent = sentAt[period ?? ""] ?? (period == current.previous.raw ? Date().addingTimeInterval(-86400 * 27) : nil)
+            let sent = sentAt[period ?? ""] ?? (period == current.previous.raw ? DemoClock.now.addingTimeInterval(-86400 * 27) : nil)
             return ok(["last_sent_at": sent.map(iso) ?? NSNull(), "can_send": sent == nil, "active_receipt_count": month(period).count, "has_accountant": true])
         case ("POST", "/receipts/submit"):
             sentAt[bodyJSON["period"] as? String ?? ""] = Date()
