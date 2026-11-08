@@ -139,53 +139,61 @@ extension UIApplication {
     }
 }
 
-/// System Sign in with Apple button. App Review requires Apple's own artwork and
-/// title, so never replace this with a custom-drawn logo (Guideline 4).
-struct AppleIDButton: UIViewRepresentable {
-    var cornerRadius: CGFloat
-    var enabled: Bool
+/// Custom Sign in with Apple button following the HIG: the left-aligned logo is
+/// Apple's official artwork from Apple Design Resources (siwa-logo-* assets), the
+/// background is pure black/white to match it, and the title uses the system font.
+/// Never redraw or recolor the logo (App Review Guideline 4).
+struct AppleIDButton: View {
+    var height: CGFloat = 50
+    var radius: CGFloat = 14
     let action: () -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
 
-    func makeCoordinator() -> Coordinator { Coordinator(action: action) }
-
-    func updateUIView(_ button: ASAuthorizationAppleIDButton, context: Context) {
-        context.coordinator.action = action
-        button.cornerRadius = cornerRadius
-        button.isEnabled = enabled
-    }
-
-    func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
-        let button = ASAuthorizationAppleIDButton(type: .continue, style: colorScheme == .dark ? .white : .black)
-        button.cornerRadius = cornerRadius
-        button.isEnabled = enabled
-        button.addTarget(context.coordinator, action: #selector(Coordinator.tapped), for: .touchUpInside)
-        return button
-    }
-
-    final class Coordinator: NSObject {
-        var action: () -> Void
-        init(action: @escaping () -> Void) { self.action = action }
-        @objc func tapped() { action() }
+    var body: some View {
+        let dark = colorScheme == .dark
+        Button(action: action) {
+            HStack(spacing: 0) {
+                Image(dark ? "siwa-logo-black" : "siwa-logo-white")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: height)
+                Text("Apple ile devam et")
+                    .font(.system(size: height * 0.38, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(.trailing, height * 0.3)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .foregroundStyle(dark ? Color.black : Color.white)
+            .background(dark ? Color.white : Color.black, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+        }
+        .buttonStyle(PressScaleStyle())
+        .opacity(isEnabled ? 1 : 0.55)
+        .accessibilityLabel("Apple ile devam et")
     }
 }
 
-/// Sign in with Apple (system button) / "Google ile devam et" buttons (2B full width, 2C half width).
+private struct PressScaleStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+/// "Apple ile devam et" / "Google ile devam et" buttons (2B full width, 2C half width).
 struct SocialButtons: View {
     var compact = false
     var busy: Bool
     let onApple: () -> Void
     let onGoogle: () -> Void
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let layout = compact ? AnyLayout(HStackLayout(spacing: 10)) : AnyLayout(VStackLayout(spacing: 10))
         layout {
-            AppleIDButton(cornerRadius: 14, enabled: !busy, action: onApple)
-                .id(colorScheme) // style is fixed at init; recreate on light/dark switch
-                .frame(maxWidth: .infinity)
-                .frame(height: compact ? 46 : 50)
-                .opacity(busy ? 0.55 : 1)
+            AppleIDButton(height: compact ? 46 : 50, action: onApple)
 
             Button(action: onGoogle) {
                 HStack(spacing: compact ? 8 : 9) {
