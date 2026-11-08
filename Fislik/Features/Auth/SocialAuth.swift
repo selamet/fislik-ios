@@ -139,6 +139,50 @@ extension UIApplication {
     }
 }
 
+/// Custom Sign in with Apple button following the HIG: the left-aligned logo is
+/// Apple's official artwork from Apple Design Resources (siwa-logo-* assets), the
+/// background is pure black/white to match it, and the title uses the system font.
+/// Never redraw or recolor the logo (App Review Guideline 4).
+struct AppleIDButton: View {
+    var height: CGFloat = 50
+    var radius: CGFloat = 14
+    let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        let dark = colorScheme == .dark
+        Button(action: action) {
+            HStack(spacing: 0) {
+                Image(dark ? "siwa-logo-black" : "siwa-logo-white")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: height)
+                Text("Apple ile devam et")
+                    .font(.system(size: height * 0.38, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(.trailing, height * 0.3)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .foregroundStyle(dark ? Color.black : Color.white)
+            .background(dark ? Color.white : Color.black, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+        }
+        .buttonStyle(PressScaleStyle())
+        .opacity(isEnabled ? 1 : 0.55)
+        .accessibilityLabel("Apple ile devam et")
+    }
+}
+
+private struct PressScaleStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
 /// "Apple ile devam et" / "Google ile devam et" buttons (2B full width, 2C half width).
 struct SocialButtons: View {
     var compact = false
@@ -149,13 +193,7 @@ struct SocialButtons: View {
     var body: some View {
         let layout = compact ? AnyLayout(HStackLayout(spacing: 10)) : AnyLayout(VStackLayout(spacing: 10))
         layout {
-            Button(action: onApple) {
-                HStack(spacing: compact ? 8 : 9) {
-                    Icon(.apple, size: compact ? 17 : 19)
-                    Text(compact ? "Apple" : "Apple ile devam et")
-                }
-            }
-            .buttonStyle(.f(.dark, height: compact ? 46 : 50, fontSize: compact ? 14 : 15))
+            AppleIDButton(height: compact ? 46 : 50, action: onApple)
 
             Button(action: onGoogle) {
                 HStack(spacing: compact ? 8 : 9) {

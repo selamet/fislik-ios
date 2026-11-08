@@ -5,7 +5,7 @@ enum FIcon: String, CaseIterable {
     case receipt, users, bell, user, camera, images, chevronLeft, chevronRight, chevronDown
     case search, layoutGrid, list, x, pencil, trash, sparkles, triangleAlert, send, shieldCheck
     case building, keyRound, logOut, store, check, lock, clock, userPlus, userCheck, circleCheck
-    case circleAlert, inbox, rotateCw, fileText, plus, download, arrowLeft, mail, apple, scanFace
+    case circleAlert, inbox, rotateCw, fileText, plus, download, arrowLeft, mail, scanFace
     case zap, eye, ellipsis, share, calendar, zoomIn, sun, zapOff, flashlight, package
 }
 
