@@ -139,23 +139,53 @@ extension UIApplication {
     }
 }
 
-/// "Apple ile devam et" / "Google ile devam et" buttons (2B full width, 2C half width).
+/// System Sign in with Apple button. App Review requires Apple's own artwork and
+/// title, so never replace this with a custom-drawn logo (Guideline 4).
+struct AppleIDButton: UIViewRepresentable {
+    var cornerRadius: CGFloat
+    var enabled: Bool
+    let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    func makeCoordinator() -> Coordinator { Coordinator(action: action) }
+
+    func updateUIView(_ button: ASAuthorizationAppleIDButton, context: Context) {
+        context.coordinator.action = action
+        button.cornerRadius = cornerRadius
+        button.isEnabled = enabled
+    }
+
+    func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
+        let button = ASAuthorizationAppleIDButton(type: .continue, style: colorScheme == .dark ? .white : .black)
+        button.cornerRadius = cornerRadius
+        button.isEnabled = enabled
+        button.addTarget(context.coordinator, action: #selector(Coordinator.tapped), for: .touchUpInside)
+        return button
+    }
+
+    final class Coordinator: NSObject {
+        var action: () -> Void
+        init(action: @escaping () -> Void) { self.action = action }
+        @objc func tapped() { action() }
+    }
+}
+
+/// Sign in with Apple (system button) / "Google ile devam et" buttons (2B full width, 2C half width).
 struct SocialButtons: View {
     var compact = false
     var busy: Bool
     let onApple: () -> Void
     let onGoogle: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let layout = compact ? AnyLayout(HStackLayout(spacing: 10)) : AnyLayout(VStackLayout(spacing: 10))
         layout {
-            Button(action: onApple) {
-                HStack(spacing: compact ? 8 : 9) {
-                    Icon(.apple, size: compact ? 17 : 19)
-                    Text(compact ? "Apple" : "Apple ile devam et")
-                }
-            }
-            .buttonStyle(.f(.dark, height: compact ? 46 : 50, fontSize: compact ? 14 : 15))
+            AppleIDButton(cornerRadius: 14, enabled: !busy, action: onApple)
+                .id(colorScheme) // style is fixed at init; recreate on light/dark switch
+                .frame(maxWidth: .infinity)
+                .frame(height: compact ? 46 : 50)
+                .opacity(busy ? 0.55 : 1)
 
             Button(action: onGoogle) {
                 HStack(spacing: compact ? 8 : 9) {
