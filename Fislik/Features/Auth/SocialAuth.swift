@@ -16,12 +16,15 @@ enum SocialAuthError: LocalizedError {
     }
 }
 
-/// Sign in with Apple → identity token (JWT) + optional full name.
+/// Sign in with Apple → identity token (JWT), one-time authorization code and optional full name.
+/// The code lets the API obtain a refresh token it can revoke when the account is deleted.
 @MainActor
 final class AppleSignIn: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    private var continuation: CheckedContinuation<(token: String, name: String?), Error>?
+    struct Result { let token: String; let code: String?; let name: String? }
 
-    func signIn() async throws -> (token: String, name: String?) {
+    private var continuation: CheckedContinuation<Result, Error>?
+
+    func signIn() async throws -> Result {
         let request = ASAuthorizationAppleIDProvider().createRequest()
         request.requestedScopes = [.fullName, .email]
         let controller = ASAuthorizationController(authorizationRequests: [request])
@@ -36,10 +39,11 @@ final class AppleSignIn: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
     nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         let credential = authorization.credential as? ASAuthorizationAppleIDCredential
         let token = credential?.identityToken.flatMap { String(data: $0, encoding: .utf8) }
+        let code = credential?.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
         let name = credential?.fullName.flatMap { PersonNameComponentsFormatter().string(from: $0).nilIfBlank }
         Task { @MainActor in
             if let token {
-                continuation?.resume(returning: (token, name))
+                continuation?.resume(returning: Result(token: token, code: code, name: name))
             } else {
                 continuation?.resume(throwing: SocialAuthError.failed)
             }

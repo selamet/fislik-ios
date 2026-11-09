@@ -9,8 +9,8 @@ enum API {
     struct RegisterBody: Encodable { let email, password, fullName: String; let role: UserRole; let inviteToken: String? }
     struct LoginBody: Encodable { let email, password: String }
     struct GoogleBody: Encodable { let credential: String }
-    struct AppleBody: Encodable { let identityToken: String; let fullName: String? }
-    struct OAuthRegisterBody: Encodable { let registrationToken: String; let role: UserRole }
+    struct AppleBody: Encodable { let identityToken: String; let authorizationCode: String?; let fullName: String? }
+    struct OAuthRegisterBody: Encodable { let registrationToken: String; let role: UserRole; let authorizationCode: String? }
     struct ChangePasswordBody: Encodable { let currentPassword, newPassword: String }
     struct EmailBody: Encodable { let email: String }
     struct ResetConfirmBody: Encodable { let token, newPassword: String }
@@ -27,12 +27,12 @@ enum API {
         try await client.request(.post, "/auth/oauth/google", body: GoogleBody(credential: idToken), authorized: false)
     }
 
-    static func apple(identityToken: String, fullName: String?) async throws -> OAuthResult {
-        try await client.request(.post, "/auth/oauth/apple", body: AppleBody(identityToken: identityToken, fullName: fullName), authorized: false)
+    static func apple(identityToken: String, authorizationCode: String?, fullName: String?) async throws -> OAuthResult {
+        try await client.request(.post, "/auth/oauth/apple", body: AppleBody(identityToken: identityToken, authorizationCode: authorizationCode, fullName: fullName), authorized: false)
     }
 
-    static func oauthRegister(token: String, role: UserRole) async throws -> AuthResponse {
-        try await client.request(.post, "/auth/oauth/register", body: OAuthRegisterBody(registrationToken: token, role: role), authorized: false)
+    static func oauthRegister(token: String, role: UserRole, authorizationCode: String?) async throws -> AuthResponse {
+        try await client.request(.post, "/auth/oauth/register", body: OAuthRegisterBody(registrationToken: token, role: role, authorizationCode: authorizationCode), authorized: false)
     }
 
     static func me() async throws -> User {
