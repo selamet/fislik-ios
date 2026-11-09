@@ -16,6 +16,8 @@ final class AuthModel {
     var error: String?
     var path: [AuthRoute] = []
     var inviteToken: String?
+    /// Apple's single-use authorization code, held until the role picker creates the account.
+    private var pendingAppleCode: String?
 
     private let apple = AppleSignIn()
     private let google = GoogleSignIn()
@@ -59,13 +61,21 @@ final class AuthModel {
     func appleSignIn(app: AppModel) async {
         await run({
             let result = try await apple.signIn()
-            try await handle(try await API.apple(identityToken: result.token, fullName: result.name), app: app)
-        }, map: { e in e.status == 404 || e.status == 405 ? "Apple ile giriş çok yakında. Şimdilik e-posta ile devam et." : nil })
+            pendingAppleCode = result.code
+            try await handle(try await API.apple(identityToken: result.token, authorizationCode: result.code, fullName: result.name), app: app)
+        }, map: { e in
+            switch e.status {
+            case 401: "Apple hesabı doğrulanamadı."
+            case 400: "Apple hesabının e-postası doğrulanmamış."
+            default: nil
+            }
+        })
     }
 
     func googleSignIn(app: AppModel) async {
         await run({
             let idToken = try await google.signIn()
+            pendingAppleCode = nil
             try await handle(try await API.google(idToken: idToken), app: app)
         }, map: { e in
             switch e.status {
@@ -90,7 +100,8 @@ final class AuthModel {
 
     func completeOAuth(app: AppModel, token: String, role: UserRole) async {
         await run({
-            let auth = try await API.oauthRegister(token: token, role: role)
+            let auth = try await API.oauthRegister(token: token, role: role, authorizationCode: pendingAppleCode)
+            pendingAppleCode = nil
             await app.signedIn(auth)
             await acceptPendingInvite()
         }, map: { e in e.status == 401 ? "Süre doldu, tekrar giriş yap." : nil })

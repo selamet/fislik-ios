@@ -9,13 +9,13 @@ struct SnapshotEntry: TimelineEntry {
 struct SnapshotProvider: TimelineProvider {
     func placeholder(in context: Context) -> SnapshotEntry { SnapshotEntry(date: Date(), data: .placeholder) }
 
+    /// Sample data only in the widget gallery; on the home screen show the user's own (or empty) data.
     func getSnapshot(in context: Context, completion: @escaping (SnapshotEntry) -> Void) {
-        completion(SnapshotEntry(date: Date(), data: context.isPreview ? .placeholder : (WidgetData.load() ?? .placeholder)))
+        completion(SnapshotEntry(date: Date(), data: context.isPreview ? .placeholder : (WidgetData.load() ?? .empty)))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
-        let empty = WidgetData(period: Period.current.raw, count: 0, unprocessed: 0, total: 0, vat: 0, recent: [], updatedAt: Date())
-        let entry = SnapshotEntry(date: Date(), data: WidgetData.load() ?? empty)
+        let entry = SnapshotEntry(date: Date(), data: WidgetData.load() ?? .empty)
         completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(30 * 60))))
     }
 }
@@ -23,6 +23,10 @@ struct SnapshotProvider: TimelineProvider {
 private extension WidgetData {
     /// Snapshot from a previous month: show zeros for the new month.
     var isStale: Bool { periodValue != .current }
+
+    static var empty: WidgetData {
+        WidgetData(period: Period.current.raw, count: 0, unprocessed: 0, total: 0, vat: 0, recent: [], updatedAt: Date())
+    }
 }
 
 private func toneColor(_ tone: String) -> Color {
