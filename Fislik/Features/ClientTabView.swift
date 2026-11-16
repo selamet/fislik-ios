@@ -53,6 +53,7 @@ struct ClientTabView: View {
             case .addReceipt: AddReceiptSheet()
             case .submit: SubmitMonthSheet()
             case .inviteAccountant: InviteAccountantSheet()
+            case .companySwitcher: CompanySwitcherSheet()
             case .camera: EmptyView()
             }
         }

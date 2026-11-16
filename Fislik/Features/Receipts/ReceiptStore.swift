@@ -104,7 +104,12 @@ final class ReceiptStore {
         }
     }
 
-    private func cacheKey(_ period: Period) -> String { "month-\(clientId.map { $0 + "-" } ?? "")\(period.raw)" }
+    /// Accountant mode keys by client; client mode by the active company, so
+    /// offline caches of two companies never mix.
+    private func cacheKey(_ period: Period) -> String {
+        let scope = clientId ?? CompanyStore.storedActiveId()
+        return "month-\(scope.map { $0 + "-" } ?? "")\(period.raw)"
+    }
 
     /// Store scoped to one client of the signed-in accountant.
     static func forClient(_ id: String) -> ReceiptStore {

@@ -20,6 +20,11 @@ struct UploadItem: Codable, Identifiable, Equatable {
     var error: String?
     var attempts = 0
     var clientId: String?
+    /// Company the item was captured for (client mode). Pinned as
+    /// `X-Company-Id` on every request of this item, so switching company
+    /// never re-targets a pending upload. nil for accountant uploads and for
+    /// items queued before companies existed (those use the active company).
+    var companyId: String?
     var createdAt = Date()
 
     var isDone: Bool { state == .done }
@@ -76,11 +81,19 @@ final class UploadQueue {
         pump()
     }
 
+    /// The month's uploads for the company on screen (items captured for
+    /// another company keep running but stay out of this list).
     func items(for period: Period) -> [UploadItem] {
-        items.filter { $0.period == period }
+        let active = CompanyStore.shared.activeId
+        return items.filter { $0.period == period && ($0.companyId == nil || $0.companyId == active) }
     }
 
     var activeCount: Int { items.filter(\.isActive).count }
+
+    /// Unfinished uploads pinned to a company, for the switcher's per-company badge.
+    func pendingCount(companyId: String) -> Int {
+        items.filter { $0.isActive && $0.companyId == companyId }.count
+    }
 
     // MARK: Enqueue
 
@@ -105,6 +118,7 @@ final class UploadQueue {
         let id = UUID().uuidString
         try? data.write(to: fileURL(id), options: .atomic)
         var item = UploadItem(id: id, filename: filename, period: period, contentType: contentType, needsCompression: needsCompression, clientId: clientId)
+        if clientId == nil { item.companyId = CompanyStore.storedActiveId() }
         if data.count > ImageCompressor.maxUploadBytes && !needsCompression {
             item.state = .failed
             item.error = "Dosya çok büyük (en fazla 15 MB)."
@@ -173,7 +187,9 @@ final class UploadQueue {
 
         do {
             update(id) { $0.state = .uploading; $0.progress = 0.08 }
-            let ticket = try await API.createUpload(contentType: item.contentType, period: item.period, clientId: item.clientId)
+            let ticket = try await APIClient.$pinnedCompanyId.withValue(item.companyId) {
+                try await API.createUpload(contentType: item.contentType, period: item.period, clientId: item.clientId)
+            }
             update(id) {
                 $0.receiptId = ticket.receiptId
                 $0.uploadURL = ticket.uploadUrl
@@ -216,14 +232,20 @@ final class UploadQueue {
         guard let receiptId = item.receiptId else { return fail(id, "Yükleme başarısız.") }
         do {
             let size = (try? FileManager.default.attributesOfItem(atPath: fileURL(id).path)[.size] as? Int) ?? nil
-            let receipt = try await API.completeUpload(receiptId: receiptId, size: size)
+            let receipt = try await APIClient.$pinnedCompanyId.withValue(item.companyId) {
+                try await API.completeUpload(receiptId: receiptId, size: size)
+            }
             if let data = try? Data(contentsOf: fileURL(id)) {
                 await ReceiptImageLoader.shared.store(data, for: receipt.id, pdf: receipt.isPDF)
             }
             if receipt.period != item.period.raw, let actual = Period(receipt.period) {
                 notice = "\(item.period.title) kapalı olduğu için fiş \(actual.title) ayına eklendi."
             }
-            if item.clientId == nil { ReceiptStore.shared.upsert(receipt) }
+            // Only the visible company's list gets the receipt; one captured for
+            // another company shows up when the user switches back.
+            if item.clientId == nil, item.companyId == nil || item.companyId == CompanyStore.storedActiveId() {
+                ReceiptStore.shared.upsert(receipt)
+            }
             update(id) { $0.state = .done }
             running.remove(id)
             try? FileManager.default.removeItem(at: fileURL(id))

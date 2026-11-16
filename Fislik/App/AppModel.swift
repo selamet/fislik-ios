@@ -55,6 +55,7 @@ final class AppModel {
 
     init() {
         APIClient.shared.tokenProvider = { TokenBox.shared.value }
+        APIClient.shared.companyIdProvider = { CompanyStore.storedActiveId() }
         APIClient.shared.onUnauthorized = { [weak self] in
             Task { @MainActor in self?.sessionExpired = true }
         }
@@ -123,6 +124,7 @@ final class AppModel {
 
     private func routeAfterLogin() async {
         SessionCache.user = user
+        if user?.role == .client { await CompanyStore.shared.load() }
         if user?.role == .client, !companySkipped, (try? await API.company()) == .some(nil) {
             phase = .companySetup
         } else {
@@ -160,6 +162,7 @@ final class AppModel {
         SessionCache.clear()
         ReceiptStore.shared.reset()
         NotificationsStore.shared.reset()
+        CompanyStore.shared.reset()
         UploadQueue.shared.clearAll()
         Task { await ReceiptImageLoader.shared.clear() }
         PushManager.shared.setBadge(0)

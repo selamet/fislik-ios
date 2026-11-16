@@ -325,3 +325,37 @@ enum JSONValue: Codable, Equatable {
         }
     }
 }
+
+// MARK: - Companies
+
+/// A user's role inside one company (membership), not the account type.
+enum MemberRole: String, Codable, CaseIterable {
+    case owner, admin, uploader
+
+    var label: String {
+        switch self {
+        case .owner: "Sahip"
+        case .admin: "Yönetici"
+        case .uploader: "Yükleyici"
+        }
+    }
+
+    var isManager: Bool { self != .uploader }
+}
+
+/// One of the caller's active company memberships (`GET /companies`).
+struct CompanyMembership: Codable, Equatable, Identifiable {
+    let id: String
+    let name: String
+    let role: MemberRole
+    /// Active member count; optional so older API responses still decode.
+    var memberCount: Int?
+
+    var initials: String { name.initials }
+
+    /// "Sahip · 3 üye", or just the role for a one-person company.
+    var caption: String {
+        guard let memberCount, memberCount > 1 else { return role.label }
+        return "\(role.label) · \(memberCount) üye"
+    }
+}
