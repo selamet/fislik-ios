@@ -192,6 +192,18 @@ enum API {
         try await client.send(.delete, "/clients/\(clientId)/periods/\(period.raw)/lock")
     }
 
+    // MARK: Companies
+
+    struct CompanyNameBody: Encodable { let name: String }
+
+    static func companies() async throws -> [CompanyMembership] {
+        try await client.request(.get, "/companies")
+    }
+
+    static func createCompany(name: String) async throws -> CompanyMembership {
+        try await client.request(.post, "/companies", body: CompanyNameBody(name: name))
+    }
+
     // MARK: Company
 
     static func company() async throws -> CompanyProfile? {

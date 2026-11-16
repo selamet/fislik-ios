@@ -143,3 +143,59 @@ final class DisplayCaseTests: XCTestCase {
         XCTAssertEqual("SHELL TURCAS".displayCased, "Shell Turcas")
     }
 }
+
+final class CompanyTenantTests: XCTestCase {
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: CompanyStore.activeKey)
+        super.tearDown()
+    }
+
+    private func request(_ client: APIClient) throws -> URLRequest {
+        try client.makeRequest(.get, "/receipts", query: [:], body: EmptyBody?.none, authorized: true)
+    }
+
+    func testActiveCompanyIsSentAsHeader() throws {
+        let client = APIClient(baseURL: URL(string: "https://example.test")!)
+        XCTAssertNil(try request(client).value(forHTTPHeaderField: APIClient.companyHeader))
+        client.companyIdProvider = { "co-active" }
+        XCTAssertEqual(try request(client).value(forHTTPHeaderField: APIClient.companyHeader), "co-active")
+    }
+
+    func testPinnedCompanyOverridesActive() throws {
+        let client = APIClient(baseURL: URL(string: "https://example.test")!)
+        client.companyIdProvider = { "co-active" }
+        let pinned = try APIClient.$pinnedCompanyId.withValue("co-pinned") { try request(client) }
+        XCTAssertEqual(pinned.value(forHTTPHeaderField: APIClient.companyHeader), "co-pinned")
+        let unpinned = try APIClient.$pinnedCompanyId.withValue(nil) { try request(client) }
+        XCTAssertEqual(unpinned.value(forHTTPHeaderField: APIClient.companyHeader), "co-active")
+    }
+
+    func testUnauthorizedRequestsCarryNoCompany() throws {
+        let client = APIClient(baseURL: URL(string: "https://example.test")!)
+        client.companyIdProvider = { "co-active" }
+        let req = try client.makeRequest(.post, "/auth/login", query: [:], body: EmptyBody?.none, authorized: false)
+        XCTAssertNil(req.value(forHTTPHeaderField: APIClient.companyHeader))
+    }
+
+    func testMembershipDecodingAndCaption() throws {
+        let json = #"[{"id":"c1","name":"Selamet Samli","role":"owner","member_count":3},{"id":"c2","name":"Ekin Kafe","role":"uploader"}]"#
+        let list = try APIClient.decoder.decode([CompanyMembership].self, from: Data(json.utf8))
+        XCTAssertEqual(list[0].caption, "Sahip · 3 üye")
+        XCTAssertEqual(list[0].initials, "SS")
+        XCTAssertEqual(list[1].caption, "Yükleyici")
+        XCTAssertFalse(list[1].role.isManager)
+    }
+
+    func testQueuedItemsFromOlderBuildsDecodeWithoutCompany() throws {
+        let item = UploadItem(id: "u1", filename: "a.jpg", period: Period("2026-11")!, contentType: "image/jpeg", needsCompression: false)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(item)) as? [String: Any])
+        object.removeValue(forKey: "companyId")
+        let legacy = try JSONDecoder().decode(UploadItem.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertNil(legacy.companyId)
+
+        var pinned = item
+        pinned.companyId = "co-1"
+        let roundTrip = try JSONDecoder().decode(UploadItem.self, from: JSONEncoder().encode(pinned))
+        XCTAssertEqual(roundTrip.companyId, "co-1")
+    }
+}

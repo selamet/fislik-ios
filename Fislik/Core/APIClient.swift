@@ -82,6 +82,17 @@ final class APIClient: @unchecked Sendable {
     static let shared = APIClient()
 
     var tokenProvider: () -> String? = { nil }
+    /// Active company for `X-Company-Id`; nil sends no header (the API then
+    /// falls back to the caller's only membership).
+    var companyIdProvider: () -> String? = { nil }
+    /// Overrides the active company for requests made inside
+    /// `APIClient.$pinnedCompanyId.withValue(...)` — the upload queue pins each
+    /// item to the company it was captured for, so switching company never
+    /// re-targets a pending upload.
+    @TaskLocal static var pinnedCompanyId: String?
+
+    static let companyHeader = "X-Company-Id"
+
     /// Called on any 401 so the app can show the session-expired banner.
     var onUnauthorized: () -> Void = {}
 
@@ -197,6 +208,9 @@ final class APIClient: @unchecked Sendable {
         }
         if authorized, let token = tokenProvider() {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if authorized, let companyId = Self.pinnedCompanyId ?? companyIdProvider() {
+            req.setValue(companyId, forHTTPHeaderField: Self.companyHeader)
         }
         return req
     }

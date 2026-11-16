@@ -322,13 +322,15 @@ struct FAvatar: View {
     let initials: String
     var size: CGFloat = 42
     var radius: CGFloat = 12
+    var foreground: Color = FColor.brand
+    var background: Color = FColor.brand.opacity(0.1)
 
     var body: some View {
         Text(initials)
             .fFont(size * 0.36, .heavy)
-            .foregroundStyle(FColor.brand)
+            .foregroundStyle(foreground)
             .frame(width: size, height: size)
-            .background(FColor.brand.opacity(0.1), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(background, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
 }
 

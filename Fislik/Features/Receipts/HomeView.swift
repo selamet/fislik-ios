@@ -14,6 +14,7 @@ enum ClientSheet: Identifiable {
     case camera
     case submit
     case inviteAccountant
+    case companySwitcher
 
     var id: String { "\(self)" }
 }
@@ -43,6 +44,7 @@ struct HomeView: View {
     @Environment(ClientRouter.self) private var router
     @Environment(UploadQueue.self) private var uploads
     @State private var store = ReceiptStore.shared
+    @State private var companies = CompanyStore.shared
     @State private var filter: ReceiptFilter = .all
     @AppStorage("homeLayout") private var listLayout = false
 
@@ -97,7 +99,8 @@ struct HomeView: View {
         .onChange(of: Connectivity.shared.isOnline) { _, online in
             if online { Task { await store.load(period, force: true) } }
         }
-        .task(id: period) {
+        // Re-runs on a company switch too: the store was reset for the new tenant.
+        .task(id: "\(period.raw)|\(companies.activeId ?? "")") {
             await store.load(period)
             if store.credits == nil { await store.refreshCredits() }
             if store.grants.isEmpty { await store.refreshGrants() }
@@ -121,8 +124,12 @@ struct HomeView: View {
     @ViewBuilder
     private func header(receipts: [Receipt]) -> some View {
         HStack {
-            FislikLogo()
-            Spacer()
+            if let company = companies.active {
+                CompanyHeaderButton(company: company) { router.sheet = .companySwitcher }
+            } else {
+                FislikLogo()
+            }
+            Spacer(minLength: 12)
             if isOffline {
                 OfflinePill()
             } else {

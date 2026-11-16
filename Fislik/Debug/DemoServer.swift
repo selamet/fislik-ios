@@ -100,6 +100,11 @@ final class DemoData: @unchecked Sendable {
     private var readIds: Set<String> = ["n3", "n4", "n5", "n6"]
     private var locked: Set<String> = []
     private var sentAt: [String: Date] = [:]
+    private var companies: [[String: Any]] = [
+        ["id": "co-1", "name": "Yıldırım Ticaret", "role": "owner", "member_count": 3],
+        ["id": "co-2", "name": "Samli Danışmanlık Ltd.", "role": "admin", "member_count": 2],
+        ["id": "co-3", "name": "Ekin Kafe", "role": "uploader", "member_count": 4],
+    ]
     private var grants: [[String: Any]] = [
         ["id": "g1", "status": "active", "invited_email": "zeynep@kayamusavirlik.com", "direction": "outgoing", "counterpart_name": "Zeynep Kaya", "counterpart_email": "zeynep@kayamusavirlik.com", "invited_role": "accountant"],
         ["id": "g2", "status": "pending", "invited_email": "ayse@yildirimticaret.com", "direction": "incoming", "counterpart_name": "Mehmet Demir", "counterpart_email": "mehmet@demirmusavirlik.com", "invited_role": "client"],
@@ -209,6 +214,12 @@ final class DemoData: @unchecked Sendable {
         case ("POST", "/receipts/submit"):
             sentAt[bodyJSON["period"] as? String ?? ""] = Date()
             return ok(["last_sent_at": iso(Date()), "can_send": false, "active_receipt_count": month(bodyJSON["period"] as? String).count, "has_accountant": true])
+        case ("GET", "/companies"):
+            return ok(role == .accountant ? [] : companies)
+        case ("POST", "/companies"):
+            let created: [String: Any] = ["id": "co-\(companies.count + 1)", "name": bodyJSON["name"] as? String ?? "Yeni şirket", "role": "owner", "member_count": 1]
+            companies.append(created)
+            return ok(created, 201)
         case ("GET", "/credits/me"):
             return ok(["limit": 50, "used": 12, "remaining": 38, "unlimited": false])
         case ("GET", "/grants"):
