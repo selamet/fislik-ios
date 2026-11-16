@@ -23,6 +23,11 @@ struct ProfileScreen: View {
         return "\(v) (\(b))"
     }
 
+    /// Clients edit their company's tax profile — except uploaders, who can't.
+    private var canEditCompany: Bool {
+        !app.isAccountant && CompanyStore.shared.active?.role != .uploader
+    }
+
     var body: some View {
         ZStack {
             ScrollView {
@@ -30,7 +35,7 @@ struct ProfileScreen: View {
                     Text("Profil").fFont(30, .heavy, tracking: -0.9).padding(.top, 44)
 
                     if let user = app.user {
-                        Button { if !app.isAccountant { push(.company) } } label: {
+                        Button { if canEditCompany { push(.company) } } label: {
                             HStack(spacing: 14) {
                                 FAvatar(initials: user.initials, size: 56, radius: 18)
                                 VStack(alignment: .leading, spacing: 1) {
@@ -38,7 +43,9 @@ struct ProfileScreen: View {
                                     Text("\(app.isAccountant ? "Muhasebeci" : "Mükellef") · \(user.email)").fFont(12.5, .semibold).foregroundStyle(FColor.muted).lineLimit(1)
                                 }
                                 Spacer(minLength: 0)
-                                Icon(.chevronRight, size: 16).foregroundStyle(FColor.ink.opacity(0.3))
+                                if canEditCompany {
+                                    Icon(.chevronRight, size: 16).foregroundStyle(FColor.ink.opacity(0.3))
+                                }
                             }
                             .foregroundStyle(FColor.ink)
                             .padding(14)
@@ -51,7 +58,7 @@ struct ProfileScreen: View {
                         .buttonStyle(.plain)
 
                     FGroupedCard {
-                        if !app.isAccountant {
+                        if canEditCompany {
                             navRow(.building, "Firma bilgileri", subtitle: company.map { [$0.tradeName ?? $0.fullName, "VKN \($0.taxNumber)"].joined(separator: " · ") } ?? "Henüz eklenmedi") { push(.company) }
                             RowDivider()
                         }

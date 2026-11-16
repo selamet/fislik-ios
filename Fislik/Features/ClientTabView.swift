@@ -9,7 +9,22 @@ struct ClientTabView: View {
     @State private var uploads = UploadQueue.shared
     @State private var companies = CompanyStore.shared
 
-    private var showsCompanyTab: Bool { companies.active != nil }
+    private var isUploader: Bool { companies.active?.role == .uploader }
+    private var showsCompanyTab: Bool { companies.active != nil && !isUploader }
+
+    /// Uploaders get three tabs: nothing to manage on the company, and the
+    /// accountant link is the managers' business.
+    private var tabItems: [FTabItem<ClientRouter.Tab>] {
+        var items = [FTabItem(tab: ClientRouter.Tab.receipts, title: "Fişler", icon: .receipt)]
+        if !isUploader {
+            items.append(showsCompanyTab
+                ? FTabItem(tab: .accountant, title: "Şirket", icon: .building)
+                : FTabItem(tab: .accountant, title: "Muhasebecim", icon: .users))
+        }
+        items.append(FTabItem(tab: .notifications, title: "Bildirimler", icon: .bell, badge: app.unreadCount))
+        items.append(FTabItem(tab: .profile, title: "Profil", icon: .user))
+        return items
+    }
 
     var body: some View {
         @Bindable var router = router
@@ -48,14 +63,7 @@ struct ClientTabView: View {
                 }
             }
             if activePathEmpty {
-            FTabBar(items: [
-                FTabItem(tab: .receipts, title: "Fişler", icon: .receipt),
-                showsCompanyTab
-                    ? FTabItem(tab: .accountant, title: "Şirket", icon: .building)
-                    : FTabItem(tab: .accountant, title: "Muhasebecim", icon: .users),
-                FTabItem(tab: .notifications, title: "Bildirimler", icon: .bell, badge: app.unreadCount),
-                FTabItem(tab: .profile, title: "Profil", icon: .user),
-            ], selection: $router.tab)
+            FTabBar(items: tabItems, selection: $router.tab)
             .transition(.move(edge: .bottom))
             }
         }
@@ -81,6 +89,9 @@ struct ClientTabView: View {
         .environment(router)
         .environment(uploads)
         .onAppear(perform: consumeLink)
+        .onChange(of: isUploader) { _, uploader in
+            if uploader && router.tab == .accountant { router.tab = .receipts }
+        }
         .onChange(of: app.pendingLink) { consumeLink() }
     }
 

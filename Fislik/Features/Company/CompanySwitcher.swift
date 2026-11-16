@@ -10,9 +10,17 @@ struct CompanyHeaderButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                FAvatar(initials: company.initials, size: 40, radius: 13)
+                // Uploaders see their role instead of "ŞİRKET" (design 05-uploader-home).
+                let uploader = company.role == .uploader
+                FAvatar(
+                    initials: company.initials,
+                    size: 40,
+                    radius: 13,
+                    foreground: uploader ? FColor.ink2 : FColor.brand,
+                    background: uploader ? FColor.tint : FColor.brand.opacity(0.1)
+                )
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("ŞİRKET").fFont(11, .bold, tracking: 0.3).foregroundStyle(FColor.muted)
+                    Text(uploader ? "YÜKLEYİCİ" : "ŞİRKET").fFont(11, .bold, tracking: 0.3).foregroundStyle(FColor.muted)
                     HStack(spacing: 4) {
                         Text(company.name).fFont(18, .heavy, tracking: -0.4).lineLimit(1)
                         Icon(.chevronDown, size: 16)

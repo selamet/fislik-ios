@@ -243,3 +243,21 @@ final class MemberInviteTests: XCTestCase {
         XCTAssertTrue(try APIClient.decoder.decode(MemberInviteInfo.self, from: Data(info.utf8)).accountExists)
     }
 }
+
+final class WidgetCompanyTests: XCTestCase {
+    func testOlderSnapshotsDecodeWithoutCompany() throws {
+        var data = WidgetData.placeholder
+        data.companyName = nil
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(data)) as? [String: Any])
+        object.removeValue(forKey: "companyName")
+        let legacy = try JSONDecoder().decode(WidgetData.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertNil(legacy.companyName)
+        XCTAssertEqual(legacy.headerLabel, TR.upper(Period.current.monthName))
+    }
+
+    func testHeaderNamesTheCompany() {
+        var data = WidgetData.placeholder
+        data.companyName = "Ekin Kafe"
+        XCTAssertEqual(data.headerLabel, "EKİN KAFE · \(TR.upper(Period.current.monthName))")
+    }
+}

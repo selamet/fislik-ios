@@ -18,6 +18,7 @@ enum WidgetSnapshot {
                                 count: withIssue.count, receiptId: r.id, merchant: r.merchant, total: TR.money(r.total))
         }
         WidgetData(period: period.raw, count: receipts.count, unprocessed: receipts.filter { !$0.processed }.count,
-                   total: state.summary.totalAmount, vat: state.summary.vatTotal, recent: Array(rows), question: question, updatedAt: Date()).save()
+                   total: state.summary.totalAmount, vat: state.summary.vatTotal, recent: Array(rows), question: question, updatedAt: Date(),
+                   companyName: CompanyStore.shared.active?.name).save()
     }
 }
