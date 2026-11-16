@@ -359,3 +359,49 @@ struct CompanyMembership: Codable, Equatable, Identifiable {
         return "\(role.label) · \(memberCount) üye"
     }
 }
+
+/// A company member or pending invite (`GET /companies/{id}/members`).
+struct CompanyMember: Codable, Equatable, Identifiable {
+    enum Status: String, Codable { case active, pending }
+
+    let id: String
+    let userId: String?
+    let fullName: String?
+    let email: String
+    var role: MemberRole
+    let status: Status
+    let isMe: Bool
+    let receiptsThisMonth: Int
+    let joinedAt: Date?
+    let invitedAt: Date
+
+    var isPending: Bool { status == .pending }
+    var displayName: String { fullName ?? email }
+
+    /// Owners manage everyone but themselves; admins manage uploaders and
+    /// pending invites (mirrors the API, which stays authoritative).
+    func manageable(by viewer: MemberRole) -> Bool {
+        if isMe || role == .owner { return false }
+        if viewer == .owner { return true }
+        return viewer == .admin && (isPending || role == .uploader)
+    }
+}
+
+/// A pending member invite seen by the invitee (`GET /memberships/invites`).
+struct MemberInvite: Codable, Equatable, Identifiable {
+    let id: String
+    let companyId: String
+    let companyName: String
+    let role: MemberRole
+    let inviterName: String?
+    let createdAt: Date
+}
+
+/// Public preview of an invite link (`GET /memberships/invite/{token}`).
+struct MemberInviteInfo: Codable, Equatable {
+    let companyName: String
+    let role: MemberRole
+    let inviterName: String?
+    let email: String
+    let accountExists: Bool
+}

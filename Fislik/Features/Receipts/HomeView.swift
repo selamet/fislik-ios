@@ -7,6 +7,7 @@ enum ClientRoute: Hashable {
     case company
     case notificationPrefs
     case changePassword
+    case accountants
 }
 
 enum ClientSheet: Identifiable {
@@ -15,6 +16,7 @@ enum ClientSheet: Identifiable {
     case submit
     case inviteAccountant
     case companySwitcher
+    case inviteMember
 
     var id: String { "\(self)" }
 }
@@ -29,6 +31,9 @@ final class ClientRouter {
     var receiptsPath: [ClientRoute] = []
     var profilePath: [ClientRoute] = []
     var notificationsPath: [ClientRoute] = []
+    var companyPath: [ClientRoute] = []
+    /// Member invite being reviewed (universal link, push or in-app banner).
+    var memberInvite: AcceptMemberInviteView.Source?
     var sheet: ClientSheet?
     var period: Period = .current
 
@@ -62,6 +67,16 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 10) {
                 header(receipts: receipts)
                     .padding(.bottom, 2)
+
+                ForEach(companies.invites) { invite in
+                    FBanner(
+                        icon: .userPlus,
+                        tone: .brand,
+                        text: Text("\(invite.inviterName ?? invite.companyName) seni ") + Text(invite.companyName).bold() + Text(" ekibine davet etti")
+                    ) {
+                        FMiniButton(title: "Gör", height: 30) { router.memberInvite = .invite(invite) }
+                    }
+                }
 
                 if !month.loaded, let error = store.error {
                     LoadErrorView(error: error, retry: { Task { await store.refreshAll(period) } }, onShowCache: store.hasCache(period) ? { store.showCache(period) } : nil)

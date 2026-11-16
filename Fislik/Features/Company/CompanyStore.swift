@@ -16,6 +16,8 @@ final class CompanyStore {
     nonisolated static let activeKey = "activeCompanyId"
 
     private(set) var companies: [CompanyMembership] = []
+    /// Pending member invites addressed to the signed-in client.
+    private(set) var invites: [MemberInvite] = []
     private(set) var activeId: String? = UserDefaults.standard.string(forKey: activeKey)
 
     var active: CompanyMembership? { companies.first { $0.id == activeId } }
@@ -48,8 +50,33 @@ final class CompanyStore {
         select(company.id)
     }
 
+    func loadInvites() async {
+        invites = (try? await API.memberInvites()) ?? []
+    }
+
+    /// Joins a company (in-app invite or link token) and switches to it.
+    func accept(inviteId: String? = nil, token: String? = nil) async throws {
+        let company: CompanyMembership
+        if let inviteId {
+            company = try await API.acceptMemberInvite(id: inviteId)
+        } else if let token {
+            company = try await API.acceptMemberInvite(token: token)
+        } else {
+            return
+        }
+        invites.removeAll { $0.id == inviteId || $0.companyId == company.id }
+        await load()
+        select(company.id)
+    }
+
+    func decline(inviteId: String) async throws {
+        try await API.declineMemberInvite(id: inviteId)
+        invites.removeAll { $0.id == inviteId }
+    }
+
     func reset() {
         companies = []
+        invites = []
         setActive(nil)
     }
 

@@ -214,6 +214,11 @@ final class DemoData: @unchecked Sendable {
         case ("POST", "/receipts/submit"):
             sentAt[bodyJSON["period"] as? String ?? ""] = Date()
             return ok(["last_sent_at": iso(Date()), "can_send": false, "active_receipt_count": month(bodyJSON["period"] as? String).count, "has_accountant": true])
+        case ("GET", "/memberships/invites"):
+            return ok(role == .accountant ? [] : [[
+                "id": "inv-1", "company_id": "co-9", "company_name": "Ekin Kafe", "role": "uploader",
+                "inviter_name": "Ekin Arslan", "created_at": iso(DemoClock.now.addingTimeInterval(-86400)),
+            ]])
         case ("GET", "/companies"):
             return ok(role == .accountant ? [] : companies)
         case ("POST", "/companies"):
@@ -267,6 +272,28 @@ final class DemoData: @unchecked Sendable {
             let p = url.deletingLastPathComponent().lastPathComponent
             if method == "POST" { locked.insert(p) } else { locked.remove(p) }
             return method == "POST" ? ok(["locked": true, "locked_at": iso(Date())]) : none
+        }
+        if path.hasPrefix("/companies/"), path.hasSuffix("/members"), method == "GET" {
+            return ok([
+                ["id": "m1", "user_id": "c1", "full_name": "Ayşe Yıldırım", "email": "ayse@yildirimticaret.com", "role": "owner",
+                 "status": "active", "is_me": true, "receipts_this_month": 6, "joined_at": iso(date(day: 1, monthOffset: -3)), "invited_at": iso(date(day: 1, monthOffset: -3))],
+                ["id": "m2", "user_id": "u2", "full_name": "Selin Kaya", "email": "selin@yildirimticaret.com", "role": "admin",
+                 "status": "active", "is_me": false, "receipts_this_month": 11, "joined_at": iso(date(day: 4, monthOffset: -1)), "invited_at": iso(date(day: 3, monthOffset: -1))],
+                ["id": "m3", "user_id": "u3", "full_name": "Mert Kaya", "email": "mert@yildirimticaret.com", "role": "uploader",
+                 "status": "active", "is_me": false, "receipts_this_month": 7, "joined_at": iso(date(day: 2, monthOffset: 0)), "invited_at": iso(date(day: 1, monthOffset: 0))],
+                ["id": "m4", "user_id": NSNull(), "full_name": NSNull(), "email": "deniz@ornek.com", "role": "uploader",
+                 "status": "pending", "is_me": false, "receipts_this_month": 0, "joined_at": NSNull(), "invited_at": iso(DemoClock.now.addingTimeInterval(-172800))],
+            ])
+        }
+        if path.hasPrefix("/companies/"), path.contains("/members") {
+            if method == "DELETE" || path.hasSuffix("/resend") { return none }
+            return ok(["id": "m9", "user_id": NSNull(), "full_name": NSNull(), "email": bodyJSON["email"] as? String ?? "yeni@ornek.com",
+                       "role": bodyJSON["role"] as? String ?? "uploader", "status": "pending", "is_me": false, "receipts_this_month": 0,
+                       "joined_at": NSNull(), "invited_at": iso(Date())], 201)
+        }
+        if path.hasPrefix("/memberships/") {
+            if path.hasSuffix("/decline") { return none }
+            return ok(["id": "co-9", "name": "Ekin Kafe", "role": "uploader", "member_count": 4])
         }
         if method == "DELETE", path.hasPrefix("/receipts/") {
             receipts.removeAll { $0.id == url.lastPathComponent }
