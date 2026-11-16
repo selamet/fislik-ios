@@ -204,6 +204,51 @@ enum API {
         try await client.request(.post, "/companies", body: CompanyNameBody(name: name))
     }
 
+    // MARK: Members
+
+    struct MemberInviteBody: Encodable { let email: String; let role: MemberRole }
+    struct MemberRoleBody: Encodable { let role: MemberRole }
+
+    static func members(_ companyId: String) async throws -> [CompanyMember] {
+        try await client.request(.get, "/companies/\(companyId)/members")
+    }
+
+    static func inviteMember(_ companyId: String, email: String, role: MemberRole) async throws -> CompanyMember {
+        try await client.request(.post, "/companies/\(companyId)/members", body: MemberInviteBody(email: email, role: role))
+    }
+
+    static func resendMemberInvite(_ companyId: String, memberId: String) async throws {
+        try await client.send(.post, "/companies/\(companyId)/members/\(memberId)/resend")
+    }
+
+    static func changeMemberRole(_ companyId: String, memberId: String, role: MemberRole) async throws -> CompanyMember {
+        try await client.request(.patch, "/companies/\(companyId)/members/\(memberId)", body: MemberRoleBody(role: role))
+    }
+
+    static func removeMember(_ companyId: String, memberId: String) async throws {
+        try await client.send(.delete, "/companies/\(companyId)/members/\(memberId)")
+    }
+
+    static func memberInvites() async throws -> [MemberInvite] {
+        try await client.request(.get, "/memberships/invites")
+    }
+
+    static func acceptMemberInvite(id: String) async throws -> CompanyMembership {
+        try await client.request(.post, "/memberships/\(id)/accept")
+    }
+
+    static func declineMemberInvite(id: String) async throws {
+        try await client.send(.post, "/memberships/\(id)/decline")
+    }
+
+    static func memberInviteInfo(token: String) async throws -> MemberInviteInfo {
+        try await client.request(.get, "/memberships/invite/\(token)", authorized: false)
+    }
+
+    static func acceptMemberInvite(token: String) async throws -> CompanyMembership {
+        try await client.request(.post, "/memberships/invite/\(token)/accept")
+    }
+
     // MARK: Company
 
     static func company() async throws -> CompanyProfile? {

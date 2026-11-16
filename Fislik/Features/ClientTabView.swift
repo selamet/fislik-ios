@@ -1,10 +1,15 @@
 import SwiftUI
 
-/// Client shell: Fişler / Muhasebecim / Bildirimler / Profil.
+/// Client shell: Fişler / Şirket / Bildirimler / Profil. The second tab is
+/// the company screen for owners and admins; with an API that has no
+/// companies yet it stays the legacy "Muhasebecim" screen.
 struct ClientTabView: View {
     @Environment(AppModel.self) private var app
     @State private var router = ClientRouter()
     @State private var uploads = UploadQueue.shared
+    @State private var companies = CompanyStore.shared
+
+    private var showsCompanyTab: Bool { companies.active != nil }
 
     var body: some View {
         @Bindable var router = router
@@ -16,7 +21,13 @@ struct ClientTabView: View {
                     }
                 }
                 tab(.accountant) {
-                    NavigationStack { AccountantScreen() }
+                    if showsCompanyTab {
+                        NavigationStack(path: $router.companyPath) {
+                            CompanyScreen().navigationDestination(for: ClientRoute.self, destination: destination)
+                        }
+                    } else {
+                        NavigationStack { AccountantScreen() }
+                    }
                 }
                 tab(.notifications) {
                     NavigationStack(path: $router.notificationsPath) {
@@ -39,7 +50,9 @@ struct ClientTabView: View {
             if activePathEmpty {
             FTabBar(items: [
                 FTabItem(tab: .receipts, title: "Fişler", icon: .receipt),
-                FTabItem(tab: .accountant, title: "Muhasebecim", icon: .users),
+                showsCompanyTab
+                    ? FTabItem(tab: .accountant, title: "Şirket", icon: .building)
+                    : FTabItem(tab: .accountant, title: "Muhasebecim", icon: .users),
                 FTabItem(tab: .notifications, title: "Bildirimler", icon: .bell, badge: app.unreadCount),
                 FTabItem(tab: .profile, title: "Profil", icon: .user),
             ], selection: $router.tab)
@@ -54,11 +67,15 @@ struct ClientTabView: View {
             case .submit: SubmitMonthSheet()
             case .inviteAccountant: InviteAccountantSheet()
             case .companySwitcher: CompanySwitcherSheet()
+            case .inviteMember: InviteMemberSheet()
             case .camera: EmptyView()
             }
         }
         .fullScreenCover(isPresented: Binding(get: { router.sheet == .camera }, set: { if !$0 { router.sheet = nil } })) {
             CameraScreen()
+        }
+        .fullScreenCover(item: $router.memberInvite) { source in
+            AcceptMemberInviteView(source: source)
         }
         // After the presentation modifiers so sheets and covers inherit them too.
         .environment(router)
@@ -73,7 +90,7 @@ struct ClientTabView: View {
         case .receipts: router.receiptsPath.isEmpty
         case .notifications: router.notificationsPath.isEmpty
         case .profile: router.profilePath.isEmpty
-        case .accountant: true
+        case .accountant: router.companyPath.isEmpty
         }
     }
 
@@ -93,6 +110,7 @@ struct ClientTabView: View {
         case .company: CompanyFormView(mode: .edit)
         case .notificationPrefs: NotificationPrefsView()
         case .changePassword: ChangePasswordView()
+        case .accountants: AccountantScreen()
         }
     }
 
@@ -115,6 +133,15 @@ struct ClientTabView: View {
         case .invite(let token):
             router.tab = .accountant
             Task { _ = try? await API.acceptInvite(token: token); await ReceiptStore.shared.refreshGrants() }
+        case .memberInvite(let token):
+            router.memberInvite = .token(token)
+        case .memberInviteId(let id):
+            Task {
+                await companies.loadInvites()
+                if let invite = companies.invites.first(where: { $0.id == id }) {
+                    router.memberInvite = .invite(invite)
+                }
+            }
         case .passwordReset:
             return
         }

@@ -29,6 +29,9 @@ final class AppModel {
 
     enum DeepLink: Equatable {
         case invite(token: String)
+        /// Company member invite: by link token (`/uye-davet/{token}`) or by membership id (push / in-app).
+        case memberInvite(token: String)
+        case memberInviteId(String)
         case passwordReset(token: String)
         case receipt(id: String, period: Period?)
         case camera
@@ -124,7 +127,10 @@ final class AppModel {
 
     private func routeAfterLogin() async {
         SessionCache.user = user
-        if user?.role == .client { await CompanyStore.shared.load() }
+        if user?.role == .client {
+            await CompanyStore.shared.load()
+            await CompanyStore.shared.loadInvites()
+        }
         if user?.role == .client, !companySkipped, (try? await API.company()) == .some(nil) {
             phase = .companySetup
         } else {
@@ -180,6 +186,8 @@ final class AppModel {
             return period.map { .month($0) }
         case "uploads_finished":
             return .month(.current)
+        case "member_invite":
+            return payload["membership_id"].map { .memberInviteId($0) } ?? .notifications
         default:
             return .notifications
         }
@@ -201,6 +209,7 @@ final class AppModel {
         let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
         switch head {
         case "davet": return arg.map { .invite(token: $0) }
+        case "uye-davet": return arg.map { .memberInvite(token: $0) }
         case "sifre-sifirla": return arg.map { .passwordReset(token: $0) }
         case "fis":
             let period = query?.first { $0.name == "period" }?.value.flatMap(Period.init)

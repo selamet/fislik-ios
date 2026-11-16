@@ -199,3 +199,47 @@ final class CompanyTenantTests: XCTestCase {
         XCTAssertEqual(roundTrip.companyId, "co-1")
     }
 }
+
+final class MemberInviteTests: XCTestCase {
+    @MainActor
+    func testParsesMemberInviteLinks() {
+        XCTAssertEqual(AppModel.parse(URL(string: "https://fislik.selamet.dev/uye-davet/tok-1")!), .memberInvite(token: "tok-1"))
+        XCTAssertEqual(AppModel.parse(URL(string: "fislik://uye-davet/tok-2")!), .memberInvite(token: "tok-2"))
+        XCTAssertEqual(AppModel.parse(URL(string: "https://fislik.selamet.dev/davet/g-1")!), .invite(token: "g-1"))
+    }
+
+    @MainActor
+    func testMemberInvitePushOpensTheInvite() {
+        XCTAssertEqual(AppModel.link(forNotification: "member_invite", payload: ["membership_id": "m-7"]), .memberInviteId("m-7"))
+        XCTAssertEqual(AppModel.link(forNotification: "member_invite", payload: [:]), .notifications)
+    }
+
+    private func member(_ role: MemberRole, pending: Bool = false, me: Bool = false) -> CompanyMember {
+        CompanyMember(id: UUID().uuidString, userId: pending ? nil : "u", fullName: pending ? nil : "Ayşe Yılmaz",
+                      email: "a@ornek.com", role: role, status: pending ? .pending : .active, isMe: me,
+                      receiptsThisMonth: 0, joinedAt: nil, invitedAt: Date())
+    }
+
+    func testManagementRulesMirrorTheAPI() {
+        XCTAssertFalse(member(.owner).manageable(by: .owner))
+        XCTAssertFalse(member(.admin, me: true).manageable(by: .owner))
+        XCTAssertTrue(member(.admin).manageable(by: .owner))
+        XCTAssertFalse(member(.admin).manageable(by: .admin))
+        XCTAssertTrue(member(.uploader).manageable(by: .admin))
+        XCTAssertTrue(member(.admin, pending: true).manageable(by: .admin))
+        XCTAssertFalse(member(.uploader).manageable(by: .uploader))
+    }
+
+    func testDecodesMembersAndInvites() throws {
+        let members = #"[{"id":"m4","user_id":null,"full_name":null,"email":"deniz@ornek.com","role":"uploader","status":"pending","is_me":false,"receipts_this_month":0,"joined_at":null,"invited_at":"2026-11-14T10:00:00Z"}]"#
+        let decoded = try APIClient.decoder.decode([CompanyMember].self, from: Data(members.utf8))
+        XCTAssertTrue(decoded[0].isPending)
+        XCTAssertEqual(decoded[0].displayName, "deniz@ornek.com")
+
+        let invites = #"[{"id":"i1","company_id":"c1","company_name":"Selamet Samli","role":"admin","inviter_name":null,"created_at":"2026-11-14T10:00:00Z"}]"#
+        XCTAssertEqual(try APIClient.decoder.decode([MemberInvite].self, from: Data(invites.utf8))[0].role, .admin)
+
+        let info = #"{"company_name":"Selamet Samli","role":"uploader","inviter_name":"Selamet Samli","email":"d@o.com","account_exists":true}"#
+        XCTAssertTrue(try APIClient.decoder.decode(MemberInviteInfo.self, from: Data(info.utf8)).accountExists)
+    }
+}

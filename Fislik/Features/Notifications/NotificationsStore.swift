@@ -147,6 +147,21 @@ struct NotificationContent {
                 ? "\(name) muhasebecin olarak fişlerini görmek istiyor"
                 : "\(name) seni muhasebecisi olarak eklemek istiyor"
             linkTitle = "Davete bak →"
+        case "member_invite":
+            icon = .userPlus
+            tone = .brand
+            let company = p["company_name"]?.string ?? "bir şirketin"
+            text = "\(p["inviter_name"]?.string ?? company) seni \(company) ekibine davet etti"
+            link = p["membership_id"]?.string.map { .memberInviteId($0) }
+            linkTitle = "Davete bak →"
+        case "member_joined":
+            icon = .userCheck
+            tone = .success
+            text = "\(name), \(p["company_name"]?.string ?? "şirket") ekibine katıldı"
+        case "member_removed":
+            icon = .x
+            tone = .neutral
+            text = "\(p["company_name"]?.string ?? "Bir şirketin") ekibinden çıkarıldın"
         default:
             icon = .bell
             tone = .neutral
