@@ -67,8 +67,9 @@ struct MonthWidgetView: View {
         default:
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text(TR.upper(Period.current.monthName)).font(FFont.jakarta(10, .heavy)).tracking(0.4).foregroundStyle(FColor.muted)
-                    Spacer()
+                    Text(d.headerLabel).font(FFont.jakarta(10, .heavy)).tracking(0.4).foregroundStyle(FColor.muted)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                    Spacer(minLength: 4)
                     FislikMark(height: 16)
                 }
                 Spacer(minLength: 4)
@@ -172,7 +173,8 @@ struct RecentWidgetView: View {
         let d = entry.data
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("\(Period.current.upperTitle) · SON FİŞLER").font(FFont.jakarta(10, .heavy)).tracking(0.4).foregroundStyle(FColor.muted)
+                Text(d.companyName.map { "\(TR.upper($0)) · SON FİŞLER" } ?? "\(Period.current.upperTitle) · SON FİŞLER")
+                    .font(FFont.jakarta(10, .heavy)).tracking(0.4).foregroundStyle(FColor.muted).lineLimit(1)
                 Spacer()
                 (Text(TR.money(d.isStale ? 0 : d.total)).font(FFont.jakarta(14, .heavy)) + Text(" · KDV \(TR.money(d.isStale ? 0 : d.vat))").font(FFont.jakarta(10, .bold)).foregroundColor(FColor.muted))
                     .lineLimit(1).minimumScaleFactor(0.7)

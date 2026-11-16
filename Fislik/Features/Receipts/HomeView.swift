@@ -68,6 +68,15 @@ struct HomeView: View {
                 header(receipts: receipts)
                     .padding(.bottom, 2)
 
+                if isUploader {
+                    FBanner(
+                        icon: .circleAlert,
+                        tone: .brand,
+                        text: Text("Bu şirkette yalnızca ") + Text("senin yüklediğin").bold()
+                            + Text(" fişleri görürsün. Muhasebeciye gönderimi şirket yöneticisi yapar.")
+                    )
+                }
+
                 ForEach(companies.invites) { invite in
                     FBanner(
                         icon: .userPlus,
@@ -177,12 +186,17 @@ struct HomeView: View {
         .padding(.top, 6)
     }
 
+    /// Uploaders only see (and own) what they uploaded in this company.
+    private var isUploader: Bool { companies.active?.role == .uploader }
+
     private func eyebrow(receipts: [Receipt]) -> String {
-        if isOffline, let at = month.updatedAt { return "FİŞLER · SON GÜNCELLEME \(TR.time(at))" }
+        let title = isUploader ? "YÜKLEDİKLERİM" : "FİŞLER"
+        if isOffline, let at = month.updatedAt { return "\(title) · SON GÜNCELLEME \(TR.time(at))" }
         let uploading = uploads.items(for: period).filter { !$0.isDone }.count
-        if uploading > 0 { return "FİŞLER · \(receipts.count + uploading) FİŞ" }
-        if listLayout && !receipts.isEmpty { return "FİŞLER · \(receipts.count) FİŞ · \(TR.money(month.summary.totalAmount))" }
-        return "FİŞLER"
+        if uploading > 0 { return "\(title) · \(receipts.count + uploading) FİŞ" }
+        if listLayout && !receipts.isEmpty { return "\(title) · \(receipts.count) FİŞ · \(TR.money(month.summary.totalAmount))" }
+        if isUploader && !receipts.isEmpty { return "\(title) · \(receipts.count) FİŞ" }
+        return title
     }
 
     // MARK: Content
@@ -211,7 +225,7 @@ struct HomeView: View {
             HStack(spacing: 8) {
                 CreditsPill(credits: store.credits) { router.receiptsPath.append(.credits) }
                 Spacer(minLength: 0)
-                if !month.lock.locked {
+                if !month.lock.locked && !isUploader {
                     Button { router.sheet = .submit } label: {
                         HStack(spacing: 6) {
                             Icon(.send, size: 14)

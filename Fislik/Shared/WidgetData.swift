@@ -31,6 +31,16 @@ struct WidgetData: Codable, Equatable {
     var recent: [Row]
     var question: Question?
     var updatedAt: Date
+    /// Active company the snapshot belongs to; nil for snapshots written
+    /// before companies existed (the widgets then show no company line).
+    var companyName: String? = nil
+
+    /// "EKİN KAFE · KASIM" when the company is known, else just the month.
+    var headerLabel: String {
+        let month = TR.upper(Period.current.monthName)
+        guard let companyName, !companyName.isEmpty else { return month }
+        return "\(TR.upper(companyName)) · \(month)"
+    }
 
     static let appGroup = "group.dev.selamet.fislik"
     private static let key = "widgetData"
