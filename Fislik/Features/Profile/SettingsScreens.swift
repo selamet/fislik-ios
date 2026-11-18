@@ -15,6 +15,8 @@ struct SubpageHeader: View {
 
 /// 2Z — analysis credits.
 struct CreditsView: View {
+    /// Accountant accounts are free, so their copy of this screen has no plans to offer.
+    var showsPlans = true
     @State private var store = ReceiptStore.shared
 
     var body: some View {
@@ -29,6 +31,21 @@ struct CreditsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     hero
+                    if showsPlans {
+                    NavigationLink(value: ClientRoute.plan) {
+                        HStack(spacing: 10) {
+                            Icon(.zap, size: 17).foregroundStyle(FColor.brand)
+                            Text("Planları gör").fFont(13.5, .heavy)
+                            Spacer()
+                            Icon(.chevronRight, size: 16).foregroundStyle(FColor.ink.opacity(0.3))
+                        }
+                        .foregroundStyle(FColor.ink)
+                        .padding(.horizontal, 14).padding(.vertical, 13)
+                        .fCard(radius: 16)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("open-plan")
+                    }
                     HStack(spacing: 8) {
                         FStatTile(title: "YÜKLEME", value: "\(uploads)")
                         FStatTile(title: "YENİDEN", value: "\(reanalyzed)")
@@ -42,7 +59,7 @@ struct CreditsView: View {
                         RowDivider()
                         how(.rotateCw, FColor.brand, Text("\"Yeniden analiz et\" de 1 kredi harcar. Elle düzeltme ücretsizdir."))
                         RowDivider()
-                        how(.clock, FColor.warning, Text("Limit dolunca fişler yine yüklenir, ") + Text("sıraya alınır").fontWeight(.heavy).foregroundColor(FColor.ink) + Text(" ve kredi yenilenince otomatik analiz edilir."))
+                        how(.clock, FColor.warning, Text("Limit dolunca fişler yine yüklenir, ") + Text("sıraya alınır").fontWeight(.heavy).foregroundColor(FColor.ink) + Text(" ve limit yenilenince ya da plan yükseltilince otomatik analiz edilir."))
                     }
                 }
                 .padding(.horizontal, 16)
@@ -54,8 +71,15 @@ struct CreditsView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task {
             await store.refreshCredits()
+            await BillingStore.shared.refresh()
             await store.load(.current)
         }
+    }
+
+    /// "PRO PLAN"; empty until the billing state has loaded.
+    private var planTitle: String {
+        guard let name = BillingStore.shared.billing?.plan.name else { return "ANALİZ KREDİSİ" }
+        return "\(name.uppercased(with: Locale(identifier: "tr_TR"))) PLAN"
     }
 
     private var hero: some View {
@@ -65,7 +89,7 @@ struct CreditsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(Period.current.upperTitle) · \(c?.unlimited == true ? "SINIRSIZ" : "STANDART PLAN")").fFont(11, .heavy, tracking: 0.4).foregroundStyle(.white.opacity(0.75))
+                    Text("\(Period.current.upperTitle) · \(c?.unlimited == true ? "SINIRSIZ" : planTitle)").fFont(11, .heavy, tracking: 0.4).foregroundStyle(.white.opacity(0.75))
                     if c?.unlimited == true {
                         Text("Sınırsız").fFont(34, .heavy, tracking: -1)
                     } else {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// "Şirket" tab for owners and admins (design `02-company-tab`): company card
-/// with tax id and the shared credit pool, the team (roles, this month's
+/// with tax id, the plan card, the team (roles, this month's
 /// uploads, pending invites) and links to the accountant and tax profile.
 struct CompanyScreen: View {
     @Environment(ClientRouter.self) private var router
@@ -13,6 +13,7 @@ struct CompanyScreen: View {
     @State private var error: String?
     @State private var managing: CompanyMember?
     @State private var resent: Set<String> = []
+    @State private var teamLimitShown = false
 
     var body: some View {
         ScrollView {
@@ -32,6 +33,11 @@ struct CompanyScreen: View {
 
                 if let company = companies.active {
                     companyCard(company)
+                    PlanSummaryCard(
+                        billing: BillingStore.shared.billing,
+                        credits: store.credits,
+                        canManage: company.role.isManager
+                    ) { router.companyPath.append(.plan) }
                 }
 
                 if let error {
@@ -45,6 +51,25 @@ struct CompanyScreen: View {
             .padding(.bottom, 110)
         }
         .refreshable { await load() }
+        .overlay {
+            if teamLimitShown {
+                let canManage = companies.active?.role.isManager ?? false
+                FDialog(
+                    icon: .users,
+                    title: "Ekip limiti doldu",
+                    confirmTitle: canManage ? "Planları gör" : "Tamam",
+                    onCancel: { teamLimitShown = false },
+                    onConfirm: {
+                        teamLimitShown = false
+                        if canManage { router.companyPath.append(.plan) }
+                    }
+                ) {
+                    Text(PlanFeatures.teamLimitMessage).dialogMessage()
+                }
+                .accessibilityIdentifier("team-limit-dialog")
+            }
+        }
+        .animation(.spring(duration: 0.3), value: teamLimitShown)
         .background(FColor.bg.ignoresSafeArea())
         .fStatusBarBackdrop()
         .toolbar(.hidden, for: .navigationBar)
@@ -79,30 +104,6 @@ struct CompanyScreen: View {
                 }
                 Spacer(minLength: 0)
             }
-            if let credits = store.credits {
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack {
-                        Text("Şirket analiz kredisi").foregroundStyle(FColor.muted)
-                        Spacer()
-                        if credits.unlimited {
-                            Text("Sınırsız")
-                        } else {
-                            Text("\(credits.remaining ?? 0) ") + Text("/ \(credits.limit ?? 0)").foregroundColor(FColor.muted).fontWeight(.semibold)
-                        }
-                    }
-                    .fFont(12, .bold)
-                    if !credits.unlimited {
-                        CreditBar(
-                            fraction: Double(credits.remaining ?? 0) / Double(max(credits.limit ?? 1, 1)),
-                            track: FColor.tint,
-                            fill: credits.exhausted ? FColor.warning : FColor.brand,
-                            height: 7
-                        )
-                    }
-                    Text("Tüm üyeler bu havuzu kullanır · \(Period.current.renewalLabel)'da yenilenir")
-                        .fFont(11, .semibold).foregroundStyle(FColor.muted)
-                }
-            }
         }
         .padding(16)
         .fCard(radius: 20)
@@ -114,7 +115,15 @@ struct CompanyScreen: View {
             HStack {
                 Text("EKİP · \(members.filter { !$0.isPending }.count)").fEyebrow()
                 Spacer()
-                Button { router.sheet = .inviteMember } label: {
+                Button {
+                    // A full team gets the explanation instead of a form
+                    // the API would refuse.
+                    if BillingStore.shared.billing?.teamIsFull == true {
+                        teamLimitShown = true
+                    } else {
+                        router.sheet = .inviteMember
+                    }
+                } label: {
                     HStack(spacing: 5) {
                         Icon(.plus, size: 16)
                         Text("Üye davet et")
@@ -223,10 +232,11 @@ struct CompanyScreen: View {
             members = try await membersCall
             error = nil
         } catch let e as APIError {
-            error = e.message
+            if !e.isCancellation { error = e.message }
         } catch {}
         profile = (try? await profileCall) ?? nil
         await store.refreshCredits()
+        await BillingStore.shared.refresh()
         await store.refreshGrants()
     }
 

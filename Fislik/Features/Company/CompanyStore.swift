@@ -41,6 +41,7 @@ final class CompanyStore {
         guard id != activeId, companies.contains(where: { $0.id == id }) else { return }
         setActive(id)
         ReceiptStore.shared.reset()
+        BillingStore.shared.reset()
     }
 
     /// Creates a company (caller becomes owner) and switches to it.

@@ -89,6 +89,8 @@ struct ClientTabView: View {
         .environment(router)
         .environment(uploads)
         .onAppear(perform: consumeLink)
+        // Purchases that complete outside the plan screen still reach the API.
+        .task { BillingStore.shared.startListening() }
         .onChange(of: isUploader) { _, uploader in
             if uploader && router.tab == .accountant { router.tab = .receipts }
         }
@@ -118,6 +120,7 @@ struct ClientTabView: View {
         case .receipt(let id): ReceiptDetailView(id: id)
         case .search: SearchView()
         case .credits: CreditsView()
+        case .plan: PlanScreen()
         case .company: CompanyFormView(mode: .edit)
         case .notificationPrefs: NotificationPrefsView()
         case .changePassword: ChangePasswordView()

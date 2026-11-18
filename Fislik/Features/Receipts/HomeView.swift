@@ -4,6 +4,7 @@ enum ClientRoute: Hashable {
     case receipt(id: String)
     case search
     case credits
+    case plan
     case company
     case notificationPrefs
     case changePassword
@@ -127,6 +128,7 @@ struct HomeView: View {
         .task(id: "\(period.raw)|\(companies.activeId ?? "")") {
             await store.load(period)
             if store.credits == nil { await store.refreshCredits() }
+            if BillingStore.shared.billing == nil { await BillingStore.shared.refresh() }
             if store.grants.isEmpty { await store.refreshGrants() }
             await store.load(period.previous)
         }
@@ -188,6 +190,24 @@ struct HomeView: View {
 
     /// Uploaders only see (and own) what they uploaded in this company.
     private var isUploader: Bool { companies.active?.role == .uploader }
+
+    /// Limit note. Managers are taken to the plan screen; uploaders cannot
+    /// change the plan, so they are pointed at someone who can.
+    @ViewBuilder
+    private func limitBanner(_ tone: FBannerTone, _ icon: FIcon, _ message: String, cta: String) -> some View {
+        if isUploader {
+            FBanner(icon: icon, tone: tone, text: Text(message + " Planı şirket yöneticisi yükseltebilir."))
+                .accessibilityIdentifier("limit-banner")
+        } else {
+            Button { router.receiptsPath.append(.plan) } label: {
+                FBanner(icon: icon, tone: tone, text: Text(message)) {
+                    Text(cta).fFont(12, .heavy).foregroundStyle(FColor.brand).fixedSize()
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("limit-banner")
+        }
+    }
 
     private func eyebrow(receipts: [Receipt]) -> String {
         let title = isUploader ? "YÜKLEDİKLERİM" : "FİŞLER"
@@ -295,13 +315,15 @@ struct HomeView: View {
         if month.lock.locked {
             FBanner(icon: .lock, tone: .warning, text: Text("Bu ay muhasebecin tarafından ") + Text("kapatıldı").fontWeight(.heavy) + Text(" — mevcut fişlerde değişiklik yapılamaz; yeni fişler ilk açık aya eklenir."))
         }
-        if let credits = store.credits, credits.exhausted, period == .current {
-            Button { router.receiptsPath.append(.credits) } label: {
-                FBanner(icon: .triangleAlert, tone: .warning, text: Text("Aylık analiz limitin doldu (\(credits.used)/\(credits.limit ?? credits.used)) — yeni fişler yüklenir ama sıraya alınır.")) {
-                    Text("Limit →").fFont(12, .heavy).foregroundStyle(FColor.brand).fixedSize()
-                }
+        if let credits = store.credits, period == .current {
+            switch credits.limitState {
+            case .full:
+                limitBanner(.warning, .triangleAlert, "Bu ayın fiş limiti doldu (\(credits.used)/\(credits.limit ?? credits.used)). Yeni fişler yüklenir, okunmaları limit yenilenene ya da plan yükseltilene kadar bekler.", cta: "Planı yükselt →")
+            case .near:
+                limitBanner(.neutral, .clock, "Bu ay \(credits.remaining ?? 0) fiş hakkın kaldı (\(credits.used)/\(credits.limit ?? 0)). Limit dolunca fişler yüklenir ama okunmaları bekler.", cta: "Planlar →")
+            case .ok:
+                EmptyView()
             }
-            .buttonStyle(.plain)
         }
         if let sent = month.submission?.lastSentAt {
             let processed = month.receipts.filter(\.processed).count

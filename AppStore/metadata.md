@@ -42,8 +42,23 @@ GÜVENLİ VE ÖZEL
 
 Face ID ile hızlı giriş, Apple ve Google ile oturum açma, ana ekran ve kilit ekranı widget'ları da cabası.
 
+PLANLAR
+• Ücretsiz: ayda 10 fiş okuma, tek kullanıcı.
+• Pro (aylık abonelik): ayda 200 fiş okuma, 3 kişilik ekip.
+• İşletme (aylık abonelik): ayda 1000 fiş okuma, sınırsız ekip üyesi.
+Abonelikler aylıktır ve dönem bitiminden en az 24 saat önce iptal edilmedikçe kendiliğinden yenilenir. Ödeme Apple hesabından alınır; aboneliği App Store hesap ayarlarından yönetebilir ve iptal edebilirsin.
+
+Kullanım Koşulları (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Gizlilik Politikası: https://fislik.selamet.dev/gizlilik
+
 ## Keywords (100, comma-separated)
 fiş,fatura,kdv,muhasebe,muhasebeci,mali müşavir,gider,e-fatura,e-arşiv,tarayıcı,vergi,makbuz
+
+## What's New (1.1)
+• Pro ve İşletme planları: daha fazla fiş okuma ve ekip üyesi için planını uygulamadan yükselt.
+• Şirket ve Profil ekranlarında plan kartı: bu ayki kullanımını ve planını tek bakışta gör.
+• Limit yaklaşırken ve dolduğunda bilgilendirme.
+• Açılışta yükleme göstergesi ve küçük iyileştirmeler.
 
 ## What's New (1.0)
 Fişlik iOS'ta! Fiş çek, KDV'yi otomatik oku, muhasebecinle paylaş.
@@ -63,7 +78,13 @@ Upload order: 01-home, 02-detail, 03-add, 04-send, 05-notifications, 06-clients,
   The client demo account already has receipts and is linked to the accountant demo account.
   Camera access is used only to photograph receipts. Push notifications inform about accountant questions and processed months.
   Accounts can be deleted in Profile → Hesabı sil. Sign in with Apple is available on the login screen.
-  The app has no in-app purchases; analysis credits are a free monthly allowance.
+  Version 1.1 adds two auto-renewable subscriptions in one group ("Fişlik Planları"): Pro Monthly
+  (dev.selamet.fislik.pro.monthly) and Business Monthly (dev.selamet.fislik.business.monthly). They raise the
+  company's monthly receipt limit (free: 10, Pro: 200, Business: 1000) and team size (1 / 3 / unlimited).
+  To reach them: sign in with the client demo account, open the Profil tab and tap the plan card
+  ("Planı yükselt"), or open the Şirket tab and tap the same card. "Satın alımları geri yükle" restores purchases;
+  Terms of Use and Privacy Policy links are at the bottom of that screen.
+  Purchases are verified on our server (StoreKit 2 signed transactions, App Store Server Notifications V2).
 
 ## App Privacy (nutrition label)
 Data used to track you: **None**.
@@ -76,7 +97,21 @@ Data linked to you (all for **App Functionality**, none for tracking):
 | User Content | Photos or Videos, Other User Content (receipts, invoices) |
 | Financial Info | Other Financial Info (receipt totals and VAT) |
 
-Not collected: location, contacts, browsing history, search history, usage data, diagnostics, purchases, health, sensitive info.
+| Purchases | Purchase History (the company's subscription plan) |
+
+Not collected: location, contacts, browsing history, search history, usage data, diagnostics, health, sensitive info.
+
+## Subscriptions (1.1)
+Group "Fişlik Planları" (id 22592567), Turkish display name "Fişlik Planları". Level 1 is the higher service.
+
+| Level | Reference name | Product id | Duration | Türkiye price | Display name / description (tr) |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Business Monthly | `dev.selamet.fislik.business.monthly` | 1 month | ₺829.00 | İşletme / Ayda 1000 fiş okuma |
+| 2 | Pro Monthly | `dev.selamet.fislik.pro.monthly` | 1 month | ₺229.00 | Pro / Ayda 200 fiş okuma |
+
+- Review screenshot for both products: `AppStore/review/plan-screen.png` (plan screen, demo mode on an iPhone 17 Pro Max simulator, US storefront prices).
+- The first subscriptions must be submitted together with app version 1.1: select both under "In-App Purchases and Subscriptions" on the version page.
+- App Store Server Notifications (production and sandbox): `https://fislik-api.selamet.dev/billing/app-store/notifications`.
 
 ## Export compliance
 `ITSAppUsesNonExemptEncryption = NO` (HTTPS only) — already in Info.plist.
