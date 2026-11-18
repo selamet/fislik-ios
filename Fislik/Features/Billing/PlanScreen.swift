@@ -181,8 +181,11 @@ struct PlanCard: View {
                         .background(FColor.brand.opacity(0.1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
             }
-            (Text(price).font(FFont.jakarta(24, .heavy)).tracking(-0.6)
-                + Text(plan.isPaid ? " / ay" : "").font(FFont.jakarta(13, .bold)).foregroundColor(FColor.muted))
+            if plan.isPaid {
+                // The free plan's name already says what it costs.
+                (Text(price).font(FFont.jakarta(24, .heavy)).tracking(-0.6)
+                    + Text(" / ay").font(FFont.jakarta(13, .bold)).foregroundColor(FColor.muted))
+            }
             HStack(spacing: 8) {
                 Icon(.check, size: 15).foregroundStyle(FColor.brand)
                 Text("Ayda \(plan.monthlyReceipts) fiş okuma").fFont(13.5, .semibold)
