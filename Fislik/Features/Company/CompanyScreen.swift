@@ -223,7 +223,7 @@ struct CompanyScreen: View {
             members = try await membersCall
             error = nil
         } catch let e as APIError {
-            error = e.message
+            if !e.isCancellation { error = e.message }
         } catch {}
         profile = (try? await profileCall) ?? nil
         await store.refreshCredits()

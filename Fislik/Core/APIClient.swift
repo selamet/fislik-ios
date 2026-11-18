@@ -19,6 +19,13 @@ enum APIError: Error, Equatable, LocalizedError {
         return nil
     }
 
+    /// A request that was cancelled (its task was restarted or the view went
+    /// away), not a connection problem — callers should not show it.
+    var isCancellation: Bool {
+        if case .transport(let code) = self { return code == abs(URLError.cancelled.rawValue) }
+        return false
+    }
+
     var detail: String? {
         if case .server(_, let detail) = self { return detail }
         return nil
