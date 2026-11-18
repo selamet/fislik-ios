@@ -57,7 +57,7 @@ struct AccountantTabView: View {
                         ProfileScreen { router.profilePath.append($0) }
                             .navigationDestination(for: ClientRoute.self) { route in
                                 switch route {
-                                case .credits: CreditsView()
+                                case .credits: CreditsView(showsPlans: false)
                                 case .notificationPrefs: NotificationPrefsView()
                                 case .changePassword: ChangePasswordView()
                                 default: EmptyView()

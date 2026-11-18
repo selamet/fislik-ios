@@ -4,6 +4,7 @@ enum ClientRoute: Hashable {
     case receipt(id: String)
     case search
     case credits
+    case plan
     case company
     case notificationPrefs
     case changePassword

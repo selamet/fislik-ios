@@ -15,6 +15,8 @@ struct SubpageHeader: View {
 
 /// 2Z — analysis credits.
 struct CreditsView: View {
+    /// Accountant accounts are free, so their copy of this screen has no plans to offer.
+    var showsPlans = true
     @State private var store = ReceiptStore.shared
 
     var body: some View {
@@ -29,6 +31,21 @@ struct CreditsView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     hero
+                    if showsPlans {
+                    NavigationLink(value: ClientRoute.plan) {
+                        HStack(spacing: 10) {
+                            Icon(.zap, size: 17).foregroundStyle(FColor.brand)
+                            Text("Planları gör").fFont(13.5, .heavy)
+                            Spacer()
+                            Icon(.chevronRight, size: 16).foregroundStyle(FColor.ink.opacity(0.3))
+                        }
+                        .foregroundStyle(FColor.ink)
+                        .padding(.horizontal, 14).padding(.vertical, 13)
+                        .fCard(radius: 16)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("open-plan")
+                    }
                     HStack(spacing: 8) {
                         FStatTile(title: "YÜKLEME", value: "\(uploads)")
                         FStatTile(title: "YENİDEN", value: "\(reanalyzed)")
