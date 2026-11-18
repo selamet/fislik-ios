@@ -14,6 +14,10 @@ struct PlanScreen: View {
                 VStack(spacing: 12) {
                     if let billing = store.billing {
                         PlanHero(billing: billing)
+                        if let managed = Self.managedElsewhere(billing) {
+                            FBanner(icon: .store, tone: .brand, text: Text(managed))
+                                .accessibilityIdentifier("managed-elsewhere")
+                        }
                         if let notice = store.notice { noticeBanner(notice) }
                         ForEach(store.plans) { plan in
                             PlanCard(
@@ -43,6 +47,19 @@ struct PlanScreen: View {
         .toolbar(.hidden, for: .navigationBar)
         .manageSubscriptionsSheet(isPresented: $managing)
         .task { await store.load() }
+    }
+
+    /// Explains a subscription that is not an App Store one: it is shown
+    /// here, but bought, changed and cancelled where it came from.
+    static func managedElsewhere(_ billing: Billing) -> String? {
+        switch billing.subscription?.source {
+        case .iyzico:
+            return "Şirketin aboneliği web üzerinden alındı. Plan değişikliği ve iptal için fislik.selamet.dev adresinde Şirket > Plan sayfasını kullan; buradan ayrıca satın alma yapılamaz."
+        case .manual:
+            return "Şirketin planı Fişlik tarafından tanımlandı. Değişiklik için destek ekibine yaz."
+        case .appStore, .none:
+            return nil
+        }
     }
 
     private func noticeBanner(_ notice: BillingNotice) -> some View {
@@ -180,11 +197,8 @@ struct PlanCard: View {
                 .accessibilityIdentifier("buy-\(plan.code)")
             case .unavailable:
                 note("Bu plan şu an App Store'da satın alınamıyor.")
-            case .managedOnWeb:
-                note("Şirketin aboneliği web üzerinden alındı. Plan değişikliği için fislik.selamet.dev adresindeki Şirket > Plan sayfasını kullan.")
-            case .managedBySupport:
-                note("Şirketin planı Fişlik tarafından tanımlandı. Değişiklik için destek ekibine yaz.")
-            case .current, .none:
+            case .managedOnWeb, .managedBySupport, .current, .none:
+                // Managed elsewhere: explained once by the banner above the cards.
                 EmptyView()
             }
         }

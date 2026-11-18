@@ -269,6 +269,17 @@ struct Credits: Codable, Equatable {
     var unlimited: Bool
 
     var exhausted: Bool { !unlimited && (remaining ?? 1) <= 0 }
+
+    enum LimitState: Equatable { case ok, near, full }
+
+    /// Where the pool stands against its monthly limit. "near" starts when
+    /// 2 receipts or 20 % of the limit are left, whichever is larger — the
+    /// same rule the web app uses.
+    var limitState: LimitState {
+        guard !unlimited, let limit, let remaining else { return .ok }
+        if remaining <= 0 { return .full }
+        return remaining <= max(2, limit / 5) ? .near : .ok
+    }
 }
 
 // MARK: - Notifications

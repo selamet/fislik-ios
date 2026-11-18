@@ -122,6 +122,26 @@ final class BillingModelTests: XCTestCase {
         XCTAssertEqual(billing(canManage: false).action(for: pro, hasProduct: true), .none)
     }
 
+    func testLimitState() {
+        func credits(_ used: Int, _ limit: Int?) -> Credits {
+            Credits(limit: limit, used: used, remaining: limit.map { max(0, $0 - used) }, unlimited: limit == nil)
+        }
+        XCTAssertEqual(credits(7, 10).limitState, .ok)
+        XCTAssertEqual(credits(8, 10).limitState, .near)
+        XCTAssertEqual(credits(10, 10).limitState, .full)
+        XCTAssertEqual(credits(12, 10).limitState, .full)
+        XCTAssertEqual(credits(799, 1000).limitState, .ok)
+        XCTAssertEqual(credits(800, 1000).limitState, .near)
+        XCTAssertEqual(credits(5000, nil).limitState, .ok)
+    }
+
+    func testManagedElsewhereBanner() {
+        XCTAssertNil(PlanScreen.managedElsewhere(billing()))
+        XCTAssertNil(PlanScreen.managedElsewhere(billing(pro, subscription: subscription())))
+        XCTAssertTrue(PlanScreen.managedElsewhere(billing(pro, subscription: subscription(channel: "iyzico")))?.contains("web üzerinden") == true)
+        XCTAssertTrue(PlanScreen.managedElsewhere(billing(pro, subscription: subscription(channel: "manual")))?.contains("destek") == true)
+    }
+
     func testStatusLine() {
         XCTAssertTrue(PlanHero.statusLine(billing()).hasPrefix("Kullanım "))
         XCTAssertTrue(PlanHero.statusLine(billing(pro, subscription: subscription())).contains("tarihinde yenilenir"))
