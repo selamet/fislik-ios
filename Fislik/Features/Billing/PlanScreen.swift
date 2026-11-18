@@ -171,14 +171,15 @@ struct PlanCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text(plan.name).fFont(17, .heavy, tracking: -0.3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(plan.name).fFont(19, .heavy, tracking: -0.4)
+                    Text(PlanFeatures.tagline(plan.code)).fFont(12, .semibold).foregroundStyle(FColor.muted)
+                }
                 Spacer()
                 if action == .current {
-                    Text("Mevcut plan")
-                        .fFont(11, .heavy)
-                        .foregroundStyle(FColor.brand)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(FColor.brand.opacity(0.1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    badge("Mevcut plan", FColor.brand, FColor.brand.opacity(0.1))
+                } else if recommended {
+                    badge("Önerilen", .white, FColor.brand)
                 }
             }
             if plan.isPaid {
@@ -186,10 +187,11 @@ struct PlanCard: View {
                 (Text(price).font(FFont.jakarta(24, .heavy)).tracking(-0.6)
                     + Text(" / ay").font(FFont.jakarta(13, .bold)).foregroundColor(FColor.muted))
             }
-            HStack(spacing: 8) {
-                Icon(.check, size: 15).foregroundStyle(FColor.brand)
-                Text("Ayda \(plan.monthlyReceipts) fiş okuma").fFont(13.5, .semibold)
+            VStack(alignment: .leading, spacing: 8) {
+                feature("Ayda \(plan.monthlyReceipts) fiş okuma", strong: true)
+                ForEach(PlanFeatures.features(plan.code), id: \.self) { feature($0) }
             }
+            .padding(.vertical, 2)
             switch action {
             case .buy:
                 Button(action: buy) {
@@ -211,9 +213,28 @@ struct PlanCard: View {
         .fCard(radius: 18)
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(action == .current ? FColor.brand.opacity(0.45) : .clear, lineWidth: 1.5)
+                .strokeBorder(action == .current || recommended ? FColor.brand.opacity(0.45) : .clear, lineWidth: 1.5)
         )
         .accessibilityIdentifier("plan-\(plan.code)")
+    }
+
+    /// Pro is pointed out while the company is still deciding.
+    private var recommended: Bool { plan.code == PlanFeatures.recommended && action == .buy }
+
+    private func badge(_ text: String, _ foreground: Color, _ background: Color) -> some View {
+        Text(text)
+            .fFont(11, .heavy)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(background, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func feature(_ text: String, strong: Bool = false) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Icon(.check, size: 15).foregroundStyle(FColor.brand).padding(.top, 1)
+            Text(text).fFont(13.5, strong ? .heavy : .semibold).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
     }
 
     private func note(_ text: String) -> some View {

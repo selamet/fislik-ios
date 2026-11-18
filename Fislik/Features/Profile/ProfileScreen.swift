@@ -54,8 +54,17 @@ struct ProfileScreen: View {
                         .buttonStyle(.plain)
                     }
 
-                    Button { push(.credits) } label: { CreditsRow(credits: store.credits) }
-                        .buttonStyle(.plain)
+                    if app.isAccountant {
+                        // Accountant accounts are free: usage only, no plans.
+                        Button { push(.credits) } label: { CreditsRow(credits: store.credits) }
+                            .buttonStyle(.plain)
+                    } else {
+                        PlanSummaryCard(
+                            billing: BillingStore.shared.billing,
+                            credits: store.credits,
+                            canManage: CompanyStore.shared.active?.role.isManager ?? false
+                        ) { push(.plan) }
+                    }
 
                     FGroupedCard {
                         if canEditCompany {

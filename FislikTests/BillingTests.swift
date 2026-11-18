@@ -104,6 +104,25 @@ final class BillingModelTests: XCTestCase {
         XCTAssertFalse(APIError.server(status: 500, detail: nil).isCancellation)
     }
 
+    func testPlanFeatureLists() {
+        for code in ["free", "pro", "business"] {
+            XCTAssertFalse(PlanFeatures.features(code).isEmpty)
+            XCTAssertFalse(PlanFeatures.tagline(code).isEmpty)
+        }
+        XCTAssertEqual(PlanFeatures.features("pro").first, "Ücretsiz plandaki her şey")
+        XCTAssertEqual(PlanFeatures.features("business").first, "Pro plandaki her şey")
+        XCTAssertEqual(PlanFeatures.features("unknown"), PlanFeatures.features("free"))
+    }
+
+    func testPlanSummaryFootnote() {
+        let open = Credits(limit: 10, used: 4, remaining: 6, unlimited: false)
+        let full = Credits(limit: 10, used: 10, remaining: 0, unlimited: false)
+        let unlimited = Credits(limit: nil, used: 40, remaining: nil, unlimited: true)
+        XCTAssertTrue(PlanSummaryCard.footnote(open).hasPrefix("Tüm üyeler aynı havuzu kullanır ·"))
+        XCTAssertTrue(PlanSummaryCard.footnote(full).hasPrefix("Limit doldu"))
+        XCTAssertEqual(PlanSummaryCard.footnote(unlimited), "Tüm üyeler aynı havuzu kullanır")
+    }
+
     func testKurusFormatting() {
         XCTAssertEqual(BillingFormat.kurus(22900), "229 TL")
         XCTAssertEqual(BillingFormat.kurus(218900), "2.189 TL")
