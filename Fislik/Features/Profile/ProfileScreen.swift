@@ -130,6 +130,7 @@ struct ProfileScreen: View {
 
     private func load() async {
         await store.refreshCredits()
+        await BillingStore.shared.refresh()
         if !app.isAccountant { company = try? await API.company() }
     }
 
@@ -211,7 +212,7 @@ struct CreditsRow: View {
                 .fFont(13.5, .heavy)
                 CreditBar(fraction: credits.map { c in c.unlimited ? 0 : Double(c.used) / Double(max(c.limit ?? 1, 1)) } ?? 0, track: FColor.ink.opacity(0.08), fill: credits?.exhausted == true ? FColor.warning : FColor.brand, height: 5)
                     .padding(.top, 6)
-                Text("\(Period.current.renewalLabel)'da yenilenir · Standart plan").fFont(11, .semibold).foregroundStyle(FColor.muted).padding(.top, 4)
+                Text("\(Period.current.renewalLabel)'da yenilenir" + (BillingStore.shared.billing.map { " · \($0.plan.name) plan" } ?? "")).fFont(11, .semibold).foregroundStyle(FColor.muted).padding(.top, 4)
             }
         }
         .foregroundStyle(FColor.ink)
