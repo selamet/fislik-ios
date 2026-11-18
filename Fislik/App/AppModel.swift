@@ -168,6 +168,7 @@ final class AppModel {
         SessionCache.clear()
         ReceiptStore.shared.reset()
         NotificationsStore.shared.reset()
+        BillingStore.shared.reset()
         CompanyStore.shared.reset()
         UploadQueue.shared.clearAll()
         Task { await ReceiptImageLoader.shared.clear() }

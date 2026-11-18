@@ -227,6 +227,12 @@ final class DemoData: @unchecked Sendable {
             return ok(created, 201)
         case ("GET", "/credits/me"):
             return ok(["limit": 50, "used": 12, "remaining": 38, "unlimited": false])
+        case ("GET", "/plans"):
+            return ok(Self.plans)
+        case ("GET", "/billing/me"):
+            return ok(["plan": Self.plans[0], "subscription": NSNull(),
+                       "usage": ["limit": 50, "used": 12, "remaining": 38, "unlimited": false],
+                       "custom_limit": false, "can_manage": role != .accountant])
         case ("GET", "/grants"):
             return ok(role == .accountant ? [] : grants)
         case ("GET", "/company"), ("GET", "/clients/c1/company"):
@@ -360,5 +366,16 @@ enum DemoArt {
             ("ÖDENECEK TUTAR   \(TR.plain(Decimal(string: r.total) ?? 0)) TL" as NSString).draw(at: CGPoint(x: 48, y: 270), withAttributes: bold)
         }
     }
+}
+
+extension DemoData {
+    static let plans: [[String: Any]] = [
+        ["code": "free", "name": "Ücretsiz", "monthly_receipts": 50, "currency": "TRY", "web_monthly_kurus": 0,
+         "web_yearly_kurus": NSNull(), "app_store_monthly_kurus": 0, "app_store_product_id": NSNull()],
+        ["code": "pro", "name": "Pro", "monthly_receipts": 200, "currency": "TRY", "web_monthly_kurus": 19900,
+         "web_yearly_kurus": 218900, "app_store_monthly_kurus": 22900, "app_store_product_id": "dev.selamet.fislik.pro.monthly"],
+        ["code": "business", "name": "İşletme", "monthly_receipts": 1000, "currency": "TRY", "web_monthly_kurus": 69900,
+         "web_yearly_kurus": 768900, "app_store_monthly_kurus": 82900, "app_store_product_id": "dev.selamet.fislik.business.monthly"],
+    ]
 }
 #endif

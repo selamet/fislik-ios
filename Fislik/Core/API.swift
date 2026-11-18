@@ -269,6 +269,23 @@ enum API {
         try await client.request(.get, "/credits/me")
     }
 
+    // MARK: Billing
+
+    static func plans() async throws -> [Plan] {
+        try await client.request(.get, "/plans")
+    }
+
+    static func billing() async throws -> Billing {
+        try await client.request(.get, "/billing/me")
+    }
+
+    struct AppStoreTransactionBody: Encodable { let signedTransaction: String }
+
+    /// Attaches a StoreKit 2 signed transaction to the active company.
+    static func attachAppStoreTransaction(_ signedTransaction: String) async throws -> CompanySubscription {
+        try await client.request(.post, "/billing/app-store/transactions", body: AppStoreTransactionBody(signedTransaction: signedTransaction))
+    }
+
     // MARK: Notifications
 
     struct ReadBody: Encodable { let ids: [String]? }
