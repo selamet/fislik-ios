@@ -26,9 +26,17 @@ struct RootView: View {
     }
 }
 
+/// Shown while the stored session is restored.
 struct LaunchView: View {
     var body: some View {
-        FislikMark(height: 64)
+        VStack(spacing: 22) {
+            FislikMark(height: 64)
+            ProgressView()
+                .controlSize(.regular)
+                .tint(FColor.brand)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Fişlik yükleniyor")
     }
 }
 
