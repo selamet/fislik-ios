@@ -97,6 +97,13 @@ final class BillingModelTests: XCTestCase {
         XCTAssertFalse(plans[0].isPaid)
     }
 
+    func testCancelledRequestsAreNotConnectionErrors() {
+        XCTAssertTrue(APIClient.map(URLError(.cancelled)).isCancellation)
+        XCTAssertFalse(APIClient.map(URLError(.timedOut)).isCancellation)
+        XCTAssertFalse(APIClient.map(URLError(.notConnectedToInternet)).isCancellation)
+        XCTAssertFalse(APIError.server(status: 500, detail: nil).isCancellation)
+    }
+
     func testKurusFormatting() {
         XCTAssertEqual(BillingFormat.kurus(22900), "229 TL")
         XCTAssertEqual(BillingFormat.kurus(218900), "2.189 TL")

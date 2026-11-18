@@ -72,7 +72,7 @@ final class BillingStore {
             self.prices = freshPrices
             error = nil
         } catch let apiError as APIError {
-            error = apiError
+            if !apiError.isCancellation { error = apiError }
         } catch {
             self.error = .decoding
         }
