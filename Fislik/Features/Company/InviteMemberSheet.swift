@@ -127,6 +127,7 @@ struct InviteMemberSheet: View {
                 switch e.status {
                 case 409: error = "Bu kişi zaten ekipte ya da davet edilmiş"
                 case 422: error = "Bu e-posta bir muhasebeci hesabına ait"
+                case 402: error = "Planının ekip limiti doldu. Daha fazla üye için planını yükselt."
                 case 403: error = "Üye davet etme yetkin yok"
                 default: error = e.message
                 }

@@ -10,6 +10,8 @@ struct Plan: Codable, Equatable, Identifiable {
     let appStoreMonthlyKurus: Int
     /// StoreKit product id of the monthly App Store subscription; nil for the free plan.
     let appStoreProductId: String?
+    /// Team size the plan allows, the owner included; nil = unlimited.
+    var maxMembers: Int?
 
     var id: String { code }
     var isPaid: Bool { appStoreMonthlyKurus > 0 }
@@ -41,6 +43,16 @@ struct Billing: Codable, Equatable {
     let customLimit: Bool
     /// Whether the signed-in member may buy or change the plan.
     let canManage: Bool
+    /// Seats taken in the team (members + pending invites) and how many the
+    /// plan in effect allows; a nil limit means unlimited.
+    var memberCount: Int?
+    var memberLimit: Int?
+
+    /// Whether the plan in effect has no seat left for another team member.
+    var teamIsFull: Bool {
+        guard let memberCount, let memberLimit else { return false }
+        return memberCount >= memberLimit
+    }
 }
 
 enum BillingFormat {

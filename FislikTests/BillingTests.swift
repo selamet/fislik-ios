@@ -104,6 +104,29 @@ final class BillingModelTests: XCTestCase {
         XCTAssertFalse(APIError.server(status: 500, detail: nil).isCancellation)
     }
 
+    func testTeamSizeLines() {
+        XCTAssertEqual(PlanFeatures.team(1), "Tek kullanıcı (yalnızca şirket sahibi)")
+        XCTAssertEqual(PlanFeatures.team(3), "3 kişilik ekip")
+        XCTAssertEqual(PlanFeatures.team(nil), "Sınırsız ekip üyesi")
+    }
+
+    func testTeamIsFull() throws {
+        func state(_ count: Int?, _ limit: Int?) -> Billing {
+            var b = billing()
+            b.memberCount = count
+            b.memberLimit = limit
+            return b
+        }
+        XCTAssertTrue(state(1, 1).teamIsFull)
+        XCTAssertTrue(state(4, 3).teamIsFull)
+        XCTAssertFalse(state(2, 3).teamIsFull)
+        XCTAssertFalse(state(40, nil).teamIsFull)
+        XCTAssertFalse(state(nil, nil).teamIsFull)
+        // Older API responses without the fields decode as "not full".
+        let json = #"{"plan": {"code": "free", "name": "Ücretsiz", "monthly_receipts": 10, "currency": "TRY", "web_monthly_kurus": 0, "web_yearly_kurus": null, "app_store_monthly_kurus": 0, "app_store_product_id": null}, "subscription": null, "usage": {"limit": 10, "used": 1, "remaining": 9, "unlimited": false}, "custom_limit": false, "can_manage": true}"#
+        XCTAssertFalse(try APIClient.decoder.decode(Billing.self, from: Data(json.utf8)).teamIsFull)
+    }
+
     func testPlanFeatureLists() {
         for code in ["free", "pro", "business"] {
             XCTAssertFalse(PlanFeatures.features(code).isEmpty)

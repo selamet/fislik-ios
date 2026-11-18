@@ -13,6 +13,7 @@ struct CompanyScreen: View {
     @State private var error: String?
     @State private var managing: CompanyMember?
     @State private var resent: Set<String> = []
+    @State private var teamLimitShown = false
 
     var body: some View {
         ScrollView {
@@ -50,6 +51,25 @@ struct CompanyScreen: View {
             .padding(.bottom, 110)
         }
         .refreshable { await load() }
+        .overlay {
+            if teamLimitShown {
+                let canManage = companies.active?.role.isManager ?? false
+                FDialog(
+                    icon: .users,
+                    title: "Ekip limiti doldu",
+                    confirmTitle: canManage ? "Planları gör" : "Tamam",
+                    onCancel: { teamLimitShown = false },
+                    onConfirm: {
+                        teamLimitShown = false
+                        if canManage { router.companyPath.append(.plan) }
+                    }
+                ) {
+                    Text(PlanFeatures.teamLimitMessage).dialogMessage()
+                }
+                .accessibilityIdentifier("team-limit-dialog")
+            }
+        }
+        .animation(.spring(duration: 0.3), value: teamLimitShown)
         .background(FColor.bg.ignoresSafeArea())
         .fStatusBarBackdrop()
         .toolbar(.hidden, for: .navigationBar)
@@ -95,7 +115,15 @@ struct CompanyScreen: View {
             HStack {
                 Text("EKİP · \(members.filter { !$0.isPending }.count)").fEyebrow()
                 Spacer()
-                Button { router.sheet = .inviteMember } label: {
+                Button {
+                    // A full team gets the explanation instead of a form
+                    // the API would refuse.
+                    if BillingStore.shared.billing?.teamIsFull == true {
+                        teamLimitShown = true
+                    } else {
+                        router.sheet = .inviteMember
+                    }
+                } label: {
                     HStack(spacing: 5) {
                         Icon(.plus, size: 16)
                         Text("Üye davet et")

@@ -14,7 +14,17 @@ enum PlanFeatures {
         }
     }
 
-    /// Feature lines after the receipt limit, which the card prints itself.
+    /// Team size line of a plan card.
+    static func team(_ maxMembers: Int?) -> String {
+        switch maxMembers {
+        case nil: "Sınırsız ekip üyesi"
+        case 1?: "Tek kullanıcı (yalnızca şirket sahibi)"
+        case let count?: "\(count) kişilik ekip"
+        }
+    }
+
+    /// Feature lines after the receipt limit and team size, which the card
+    /// prints itself.
     static func features(_ code: String) -> [String] {
         switch code {
         case "pro":
@@ -34,10 +44,12 @@ enum PlanFeatures {
             [
                 "Yapay zekâ ile fiş okuma: tutar, KDV, tarih, VKN",
                 "Muhasebecinle tek dokunuşla paylaşım",
-                "Ekip üyesi davet etme",
             ]
         }
     }
+
+    /// What the team limit dialog says.
+    static let teamLimitMessage = "Ücretsiz planda ekip yalnızca şirket sahibinden oluşur. Pro planda 3 kişiye kadar, İşletme planında sınırsız üye ekleyebilirsin. Bekleyen davetler de ekip sayısına dahildir."
 
     /// The plan to nudge towards when the company is on the free plan.
     static let recommended = "pro"

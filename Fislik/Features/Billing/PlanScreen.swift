@@ -189,6 +189,7 @@ struct PlanCard: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 feature("Ayda \(plan.monthlyReceipts) fiş okuma", strong: true)
+                feature(PlanFeatures.team(plan.maxMembers), strong: true)
                 ForEach(PlanFeatures.features(plan.code), id: \.self) { feature($0) }
             }
             .padding(.vertical, 2)
