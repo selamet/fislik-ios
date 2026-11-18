@@ -63,15 +63,19 @@ final class BillingStore {
         do {
             async let billing = api.billing()
             async let plans = api.plans()
-            self.billing = try await billing
-            self.plans = try await plans
+            let (freshBilling, freshPlans) = try await (billing, plans)
+            // Prices are fetched before anything is published, so plan cards
+            // never show up as "unavailable" while the App Store is answering.
+            let freshPrices = await storefront.prices(for: freshPlans.compactMap(\.appStoreProductId))
+            self.billing = freshBilling
+            self.plans = freshPlans
+            self.prices = freshPrices
             error = nil
         } catch let apiError as APIError {
             error = apiError
         } catch {
             self.error = .decoding
         }
-        prices = await storefront.prices(for: plans.compactMap(\.appStoreProductId))
         loaded = true
     }
 
