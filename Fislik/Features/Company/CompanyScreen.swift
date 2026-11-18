@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// "Şirket" tab for owners and admins (design `02-company-tab`): company card
-/// with tax id and the shared credit pool, the team (roles, this month's
+/// with tax id, the plan card, the team (roles, this month's
 /// uploads, pending invites) and links to the accountant and tax profile.
 struct CompanyScreen: View {
     @Environment(ClientRouter.self) private var router
@@ -32,6 +32,11 @@ struct CompanyScreen: View {
 
                 if let company = companies.active {
                     companyCard(company)
+                    PlanSummaryCard(
+                        billing: BillingStore.shared.billing,
+                        credits: store.credits,
+                        canManage: company.role.isManager
+                    ) { router.companyPath.append(.plan) }
                 }
 
                 if let error {
@@ -78,30 +83,6 @@ struct CompanyScreen: View {
                     }
                 }
                 Spacer(minLength: 0)
-            }
-            if let credits = store.credits {
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack {
-                        Text("Şirket analiz kredisi").foregroundStyle(FColor.muted)
-                        Spacer()
-                        if credits.unlimited {
-                            Text("Sınırsız")
-                        } else {
-                            Text("\(credits.remaining ?? 0) ") + Text("/ \(credits.limit ?? 0)").foregroundColor(FColor.muted).fontWeight(.semibold)
-                        }
-                    }
-                    .fFont(12, .bold)
-                    if !credits.unlimited {
-                        CreditBar(
-                            fraction: Double(credits.remaining ?? 0) / Double(max(credits.limit ?? 1, 1)),
-                            track: FColor.tint,
-                            fill: credits.exhausted ? FColor.warning : FColor.brand,
-                            height: 7
-                        )
-                    }
-                    Text("Tüm üyeler bu havuzu kullanır · \(Period.current.renewalLabel)'da yenilenir")
-                        .fFont(11, .semibold).foregroundStyle(FColor.muted)
-                }
             }
         }
         .padding(16)
@@ -227,6 +208,7 @@ struct CompanyScreen: View {
         } catch {}
         profile = (try? await profileCall) ?? nil
         await store.refreshCredits()
+        await BillingStore.shared.refresh()
         await store.refreshGrants()
     }
 
