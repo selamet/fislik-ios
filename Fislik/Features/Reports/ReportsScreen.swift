@@ -35,6 +35,10 @@ struct ReportsScreen: View {
                                 router.receiptsPath.append(.plan)
                             }
                         }
+                        // The company's own books: owners and admins only.
+                        if !report.isOwnScope {
+                            ManualExpensesSection(period: period) { await load() }
+                        }
                     } else if let error {
                         LoadErrorView(error: error, retry: { Task { await load() } })
                     } else {

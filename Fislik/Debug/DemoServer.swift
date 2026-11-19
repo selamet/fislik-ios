@@ -100,6 +100,27 @@ final class DemoData: @unchecked Sendable {
     private var readIds: Set<String> = ["n3", "n4", "n5", "n6"]
     private var locked: Set<String> = []
     private var sentAt: [String: Date] = [:]
+    /// Manual expenses, created lazily for the current month.
+    private lazy var expenses: [[String: Any]] = [
+        expense("e1", day: 1, amount: "15000.00", vat: "2500.00", category: "kira", "Ofis kirası", recurring: true),
+        expense("e2", day: 5, amount: "1249.90", vat: nil, category: "abonelik", "Tasarım yazılımı aboneliği"),
+    ]
+
+    private func expense(_ id: String, day: Int, amount: String, vat: String?, category: String, _ description: String, recurring: Bool = false) -> [String: Any] {
+        let date = String(format: "%@-%02d", current.raw, day)
+        return ["id": id, "period": current.raw, "expense_date": date, "amount": amount, "vat_amount": vat ?? NSNull(),
+                "category": category, "description": description, "created_by_name": "Ayşe Yıldırım",
+                "created_at": iso(DemoClock.now), "recurring": recurring]
+    }
+
+    private func expenseFrom(_ body: [String: Any], id: String) -> [String: Any] {
+        let date = body["expense_date"] as? String ?? current.raw + "-01"
+        func text(_ value: Any?) -> Any { (value as? NSNumber).map { "\($0.decimalValue)" } ?? value ?? NSNull() }
+        return ["id": id, "period": String(date.prefix(7)), "expense_date": date, "amount": text(body["amount"]),
+                "vat_amount": text(body["vat_amount"]), "category": body["category"] as? String ?? "diger",
+                "description": body["description"] as? String ?? "", "created_by_name": "Ayşe Yıldırım",
+                "created_at": iso(Date()), "recurring": false]
+    }
     private var companies: [[String: Any]] = [
         ["id": "co-1", "name": "Yıldırım Ticaret", "role": "owner", "member_count": 3],
         ["id": "co-2", "name": "Samli Danışmanlık Ltd.", "role": "admin", "member_count": 2],
@@ -172,7 +193,12 @@ final class DemoData: @unchecked Sendable {
             return ["period": p.raw, "receipt_count": count, "analyzed_count": max(count - 2, 0),
                     "total_amount": "\(max(amount, 0))", "vat_total": "\(max(amount, 0) * Decimal(string: "0.16")!)"]
         }
-        let now = totals(selected)
+        var now = totals(selected)
+        let manual = expenses.filter { $0["period"] as? String == selected.raw }
+        let manualAmount = manual.reduce(Decimal(0)) { $0 + (Decimal(string: $1["amount"] as? String ?? "0") ?? 0) }
+        now["manual_count"] = manual.count
+        now["manual_amount"] = "\(manualAmount)"
+        now["total_amount"] = "\(Decimal(string: now["total_amount"] as! String)! + manualAmount)"
         let total = Decimal(string: now["total_amount"] as! String)!
         func part(_ fraction: String) -> String { "\(total * Decimal(string: fraction)!)" }
         return [
@@ -243,6 +269,12 @@ final class DemoData: @unchecked Sendable {
             return ok(summary(month(period)))
         case ("GET", "/reports/monthly"):
             return ok(report(period ?? current.raw))
+        case ("GET", "/expenses"):
+            return ok(expenses.filter { $0["period"] as? String == period })
+        case ("POST", "/expenses"):
+            let created = expenseFrom(bodyJSON, id: "e\(expenses.count + 10)")
+            expenses.append(created)
+            return ok(created, 201)
         case ("GET", "/receipts/period-lock"):
             return ok(["locked": locked.contains(period ?? "") || period == current.adding(-2).raw, "locked_at": iso(DemoClock.now.addingTimeInterval(-86400 * 20))])
         case ("GET", "/receipts/submission"):
@@ -338,6 +370,11 @@ final class DemoData: @unchecked Sendable {
         if path.hasPrefix("/memberships/") {
             if path.hasSuffix("/decline") { return none }
             return ok(["id": "co-9", "name": "Ekin Kafe", "role": "uploader", "member_count": 4])
+        }
+        if path.hasPrefix("/expenses/"), let i = expenses.firstIndex(where: { $0["id"] as? String == url.lastPathComponent }) {
+            if method == "DELETE" { expenses.remove(at: i); return none }
+            expenses[i] = expenseFrom(bodyJSON, id: url.lastPathComponent)
+            return ok(expenses[i])
         }
         if method == "DELETE", path.hasPrefix("/receipts/") {
             receipts.removeAll { $0.id == url.lastPathComponent }
