@@ -109,6 +109,28 @@ enum API {
         try await client.send(.delete, "/expenses/\(id)")
     }
 
+    // MARK: Recurring expenses
+
+    static func recurringExpenses() async throws -> [RecurringExpense] {
+        try await client.request(.get, "/expenses/recurring")
+    }
+
+    static func createRecurringExpense(_ body: RecurringBody) async throws -> RecurringExpense {
+        try await client.request(.post, "/expenses/recurring", body: body)
+    }
+
+    static func updateRecurringExpense(_ id: String, _ body: RecurringBody) async throws -> RecurringExpense {
+        try await client.request(.patch, "/expenses/recurring/\(id)", body: body)
+    }
+
+    static func setRecurringExpenseActive(_ id: String, _ active: Bool) async throws -> RecurringExpense {
+        try await client.request(.patch, "/expenses/recurring/\(id)", body: RecurringActiveBody(active: active))
+    }
+
+    static func deleteRecurringExpense(_ id: String) async throws {
+        try await client.send(.delete, "/expenses/recurring/\(id)")
+    }
+
     static func patchExtraction(_ id: String, _ patch: ExtractionPatch) async throws -> Extraction {
         try await client.request(.patch, "/receipts/\(id)/extraction", body: patch)
     }
