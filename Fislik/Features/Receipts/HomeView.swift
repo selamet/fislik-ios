@@ -5,6 +5,7 @@ enum ClientRoute: Hashable {
     case search
     case credits
     case plan
+    case reports
     case company
     case notificationPrefs
     case changePassword
@@ -269,6 +270,7 @@ struct HomeView: View {
                 FStatTile(title: "İŞLENEN", value: "\(receipts.filter(\.processed).count)", suffix: "/\(receipts.count)")
             }
             TotalsCard(summary: month.summary)
+            ReportsRow { router.receiptsPath.append(.reports) }
         }
 
         filterBar(receipts: receipts)

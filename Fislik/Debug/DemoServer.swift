@@ -162,6 +162,41 @@ final class DemoData: @unchecked Sendable {
                 "vat_by_rate": byRate.mapValues { "\($0)" }, "payment_method_totals": [:], "category_totals": [:]]
     }
 
+    /// A sample paid-plan report; months further back spend a little less.
+    private func report(_ raw: String) -> [String: Any] {
+        let selected = Period(raw) ?? current
+        func totals(_ p: Period) -> [String: Any] {
+            let back = max((current.year * 12 + current.month) - (p.year * 12 + p.month), 0)
+            let amount = p > current ? Decimal(0) : Decimal(18450) - Decimal(back * 2150)
+            let count = p > current ? 0 : max(64 - back * 7, 0)
+            return ["period": p.raw, "receipt_count": count, "analyzed_count": max(count - 2, 0),
+                    "total_amount": "\(max(amount, 0))", "vat_total": "\(max(amount, 0) * Decimal(string: "0.16")!)"]
+        }
+        let now = totals(selected)
+        let total = Decimal(string: now["total_amount"] as! String)!
+        func part(_ fraction: String) -> String { "\(total * Decimal(string: fraction)!)" }
+        return [
+            "period": selected.raw, "scope": "company", "detailed": true,
+            "totals": now.filter { $0.key != "period" },
+            "category_totals": ["yakit": part("0.38"), "yemek": part("0.22"), "market": part("0.14"), "ofis": part("0.11"), "ulasim": part("0.09"), "diger": part("0.06")],
+            "payment_method_totals": ["kredi_karti": part("0.71"), "nakit": part("0.24"), "bilinmiyor": part("0.05")],
+            "members": [
+                ["user_id": "c1", "name": "Ayşe Yıldırım", "kind": "member", "receipt_count": 28, "total_amount": part("0.46"), "vat_total": part("0.07")],
+                ["user_id": "u2", "name": "Mert Kaya", "kind": "member", "receipt_count": 21, "total_amount": part("0.33"), "vat_total": part("0.05")],
+                ["user_id": "u3", "name": "Deniz Yıldız", "kind": "member", "receipt_count": 12, "total_amount": part("0.17"), "vat_total": part("0.03")],
+                ["user_id": "acc-1", "name": "Zeynep Kaya", "kind": "accountant", "receipt_count": 3, "total_amount": part("0.04"), "vat_total": part("0.01")],
+            ],
+            "merchants": [
+                ["name": "Shell", "receipt_count": 14, "total_amount": part("0.27")],
+                ["name": "Migros", "receipt_count": 11, "total_amount": part("0.14")],
+                ["name": "Opet", "receipt_count": 6, "total_amount": part("0.11")],
+                ["name": NSNull(), "receipt_count": 3, "total_amount": part("0.04")],
+            ],
+            "previous": totals(selected.previous),
+            "trend": (0..<6).reversed().map { totals(selected.adding(-$0)) },
+        ]
+    }
+
     private var notifications: [[String: Any]] {
         let p = current.raw, prev = current.previous.raw
         let items: [(String, String, [String: Any], Date)] = [
@@ -206,6 +241,8 @@ final class DemoData: @unchecked Sendable {
             return ok(month(period).map(json))
         case ("GET", "/receipts/summary"):
             return ok(summary(month(period)))
+        case ("GET", "/reports/monthly"):
+            return ok(report(period ?? current.raw))
         case ("GET", "/receipts/period-lock"):
             return ok(["locked": locked.contains(period ?? "") || period == current.adding(-2).raw, "locked_at": iso(DemoClock.now.addingTimeInterval(-86400 * 20))])
         case ("GET", "/receipts/submission"):
