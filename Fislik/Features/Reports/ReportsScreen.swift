@@ -10,6 +10,8 @@ struct ReportsScreen: View {
     @State private var report: MonthlyReport?
     @State private var error: APIError?
     @State private var loading = false
+    /// Bumped after any expense change so both expense sections reload.
+    @State private var expensesVersion = 0
 
     init(period: Period = .current) {
         _period = State(initialValue: period)
@@ -37,7 +39,8 @@ struct ReportsScreen: View {
                         }
                         // The company's own books: owners and admins only.
                         if !report.isOwnScope {
-                            ManualExpensesSection(period: period) { await load() }
+                            ManualExpensesSection(period: period, version: expensesVersion) { await expensesChanged() }
+                            RecurringExpensesSection(paid: report.detailed, version: expensesVersion) { await expensesChanged() }
                         }
                     } else if let error {
                         LoadErrorView(error: error, retry: { Task { await load() } })
@@ -68,6 +71,11 @@ struct ReportsScreen: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 44)
         .accessibilityIdentifier("report-empty")
+    }
+
+    private func expensesChanged() async {
+        expensesVersion += 1
+        await load()
     }
 
     private func load() async {

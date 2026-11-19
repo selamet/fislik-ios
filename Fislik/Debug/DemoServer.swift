@@ -106,6 +106,22 @@ final class DemoData: @unchecked Sendable {
         expense("e2", day: 5, amount: "1249.90", vat: nil, category: "abonelik", "Tasarım yazılımı aboneliği"),
     ]
 
+    private var rules: [[String: Any]] = [
+        ["id": "rr1", "description": "Ofis kirası", "amount": "15000.00", "vat_amount": "2500.00", "category": "kira",
+         "day_of_month": 1, "end_period": NSNull(), "active": true, "last_generated_period": NSNull(), "generating": true],
+        ["id": "rr2", "description": "Araç leasing", "amount": "8750.00", "vat_amount": NSNull(), "category": "ulasim",
+         "day_of_month": 31, "end_period": "2027-03", "active": false, "last_generated_period": NSNull(), "generating": false],
+    ]
+
+    private func ruleFrom(_ body: [String: Any], base: [String: Any]) -> [String: Any] {
+        var rule = base
+        for (key, value) in body {
+            rule[key] = (value as? NSNumber).flatMap { key == "active" || key == "day_of_month" ? nil : "\($0.decimalValue)" } ?? value
+        }
+        rule["generating"] = rule["active"] as? Bool ?? true
+        return rule
+    }
+
     private func expense(_ id: String, day: Int, amount: String, vat: String?, category: String, _ description: String, recurring: Bool = false) -> [String: Any] {
         let date = String(format: "%@-%02d", current.raw, day)
         return ["id": id, "period": current.raw, "expense_date": date, "amount": amount, "vat_amount": vat ?? NSNull(),
@@ -269,6 +285,12 @@ final class DemoData: @unchecked Sendable {
             return ok(summary(month(period)))
         case ("GET", "/reports/monthly"):
             return ok(report(period ?? current.raw))
+        case ("GET", "/expenses/recurring"):
+            return ok(rules)
+        case ("POST", "/expenses/recurring"):
+            let created = ruleFrom(bodyJSON, base: ["id": "rr\(rules.count + 10)", "active": true, "last_generated_period": NSNull()])
+            rules.append(created)
+            return ok(created, 201)
         case ("GET", "/expenses"):
             return ok(expenses.filter { $0["period"] as? String == period })
         case ("POST", "/expenses"):
@@ -370,6 +392,11 @@ final class DemoData: @unchecked Sendable {
         if path.hasPrefix("/memberships/") {
             if path.hasSuffix("/decline") { return none }
             return ok(["id": "co-9", "name": "Ekin Kafe", "role": "uploader", "member_count": 4])
+        }
+        if path.hasPrefix("/expenses/recurring/"), let i = rules.firstIndex(where: { $0["id"] as? String == url.lastPathComponent }) {
+            if method == "DELETE" { rules.remove(at: i); return none }
+            rules[i] = ruleFrom(bodyJSON, base: rules[i])
+            return ok(rules[i])
         }
         if path.hasPrefix("/expenses/"), let i = expenses.firstIndex(where: { $0["id"] as? String == url.lastPathComponent }) {
             if method == "DELETE" { expenses.remove(at: i); return none }

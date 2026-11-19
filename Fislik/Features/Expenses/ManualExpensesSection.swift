@@ -5,6 +5,9 @@ import SwiftUI
 /// whose totals include these expenses.
 struct ManualExpensesSection: View {
     let period: Period
+    /// Bumped by the screen when expenses may have changed elsewhere
+    /// (a new recurring rule can add this month's entry).
+    var version = 0
     let changed: () async -> Void
 
     @State private var expenses: [Expense] = []
@@ -52,7 +55,7 @@ struct ManualExpensesSection: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("add-expense")
         }
-        .task(id: period) { await load() }
+        .task(id: "\(period.raw)-\(version)") { await load() }
         .sheet(item: $editing) { target in
             ExpenseFormSheet(period: period, expense: {
                 if case .existing(let expense) = target { return expense }
