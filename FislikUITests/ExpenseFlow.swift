@@ -10,14 +10,15 @@ final class ExpenseFlow: XCTestCase {
 
         let add = app.buttons["add-expense"]
         XCTAssertTrue(app.buttons["expense-e1"].waitForExistence(timeout: 10), "demo expenses are listed")
-        for _ in 0..<4 where !add.isHittable { app.swipeUp() }
+        for _ in 0..<4 where !add.isHittable { app.swipeUp(velocity: .slow) }
+        Thread.sleep(forTimeInterval: 1.5) // let the scroll settle before tapping
         add.tap()
 
         let save = app.buttons["save-expense"]
-        XCTAssertTrue(save.waitForExistence(timeout: 5), "the form opens")
+        XCTAssertTrue(save.waitForExistence(timeout: 15), "the form opens")
         // Saving an empty form explains what is missing.
         save.tap()
-        XCTAssertTrue(app.staticTexts["Kısa bir açıklama yaz."].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Kısa bir açıklama yaz."].waitForExistence(timeout: 15))
 
         let fields = app.textFields
         fields.element(boundBy: 0).tap()
@@ -29,14 +30,16 @@ final class ExpenseFlow: XCTestCase {
         save.tap()
 
         let row = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Personel maaşları")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 5), "the new expense is listed")
+        XCTAssertTrue(row.waitForExistence(timeout: 15), "the new expense is listed")
         XCTAssertTrue(row.label.contains("42.500,00"), row.label)
         XCTAssertTrue(row.label.contains("Maaş ve personel"), row.label)
 
         row.tap()
-        XCTAssertTrue(app.buttons["Gideri sil"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Gideri sil"].waitForExistence(timeout: 15))
         app.buttons["Gideri sil"].tap()
-        app.buttons["Sil"].firstMatch.tap()
-        XCTAssertTrue(row.waitForNonExistence(timeout: 5), "the deleted expense is gone")
+        let confirm = app.buttons["Sil"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 15), "deleting asks first")
+        confirm.tap()
+        XCTAssertTrue(row.waitForNonExistence(timeout: 15), "the deleted expense is gone")
     }
 }

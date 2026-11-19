@@ -6,6 +6,7 @@ enum ClientRoute: Hashable {
     case credits
     case plan
     case reports
+    case statements
     case company
     case notificationPrefs
     case changePassword

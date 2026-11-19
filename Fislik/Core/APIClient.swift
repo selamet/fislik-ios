@@ -186,6 +186,39 @@ final class APIClient: @unchecked Sendable {
         return data
     }
 
+    /// Uploads one file as `multipart/form-data` (field `field`) and decodes the reply.
+    func upload<Response: Decodable>(_ path: String, field: String, fileName: String, mimeType: String, data: Data) async throws -> Response {
+        var req = try makeRequest(.post, path, query: [:], body: EmptyBody?.none, authorized: true)
+        let boundary = "fislik-\(UUID().uuidString)"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 120
+        let body = Self.multipartBody(boundary: boundary, field: field, fileName: fileName, mimeType: mimeType, data: data)
+        let (reply, response): (Data, URLResponse)
+        do {
+            (reply, response) = try await session.upload(for: req, from: body)
+        } catch let error as URLError {
+            throw Self.map(error)
+        }
+        try validate(response, data: reply, authorized: true)
+        do {
+            return try Self.decoder.decode(Response.self, from: DecimalNormalizer.normalize(reply))
+        } catch {
+            throw APIError.decoding
+        }
+    }
+
+    static func multipartBody(boundary: String, field: String, fileName: String, mimeType: String, data: Data) -> Data {
+        // Quotes and line breaks would end the header early.
+        let safeName = fileName.replacingOccurrences(of: "\"", with: "'").components(separatedBy: .newlines).joined()
+        var body = Data()
+        body.append(Data("--\(boundary)\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"\(field)\"; filename=\"\(safeName)\"\r\n".utf8))
+        body.append(Data("Content-Type: \(mimeType)\r\n\r\n".utf8))
+        body.append(data)
+        body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+        return body
+    }
+
     /// Downloads a binary resource (e.g. receipts.zip) to a temporary file.
     func download(_ path: String, query: [String: String?] = [:], filename: String) async throws -> URL {
         let req = try makeRequest(.get, path, query: query, body: EmptyBody?.none, authorized: true)

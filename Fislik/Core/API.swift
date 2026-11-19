@@ -131,6 +131,34 @@ enum API {
         try await client.send(.delete, "/expenses/recurring/\(id)")
     }
 
+    // MARK: Statements
+
+    static func statements() async throws -> [Statement] {
+        try await client.request(.get, "/statements")
+    }
+
+    static func statement(_ id: String) async throws -> Statement {
+        try await client.request(.get, "/statements/\(id)")
+    }
+
+    static func uploadStatement(fileName: String, data: Data) async throws -> Statement {
+        try await client.upload("/statements", field: "file", fileName: fileName,
+                                mimeType: StatementFiles.mimeType(for: fileName), data: data)
+    }
+
+    static func deleteStatement(_ id: String) async throws {
+        try await client.send(.delete, "/statements/\(id)")
+    }
+
+    static func expenseFromStatementLine(_ statementId: String, _ lineId: String, category: String, description: String?) async throws -> Statement {
+        try await client.request(.post, "/statements/\(statementId)/lines/\(lineId)/expense",
+                                 body: LineExpenseBody(category: category, description: description))
+    }
+
+    static func setStatementLineIgnored(_ statementId: String, _ lineId: String, ignored: Bool) async throws -> Statement {
+        try await client.request(.patch, "/statements/\(statementId)/lines/\(lineId)", body: LineIgnoreBody(ignored: ignored))
+    }
+
     static func patchExtraction(_ id: String, _ patch: ExtractionPatch) async throws -> Extraction {
         try await client.request(.patch, "/receipts/\(id)/extraction", body: patch)
     }

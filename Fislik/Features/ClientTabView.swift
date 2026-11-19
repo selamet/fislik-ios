@@ -125,6 +125,7 @@ struct ClientTabView: View {
         case .credits: CreditsView()
         case .plan: PlanScreen()
         case .reports: ReportsScreen(period: router.period)
+        case .statements: StatementsScreen()
         case .company: CompanyFormView(mode: .edit)
         case .notificationPrefs: NotificationPrefsView()
         case .changePassword: ChangePasswordView()
@@ -140,6 +141,7 @@ struct ClientTabView: View {
         switch args[i + 1] {
         case "reports": router.receiptsPath = [.reports]
         case "plan": router.receiptsPath = [.plan]
+        case "statements": router.receiptsPath = [.reports, .statements]
         default: break
         }
     }

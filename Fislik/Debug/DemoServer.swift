@@ -113,6 +113,31 @@ final class DemoData: @unchecked Sendable {
          "day_of_month": 31, "end_period": "2027-03", "active": false, "last_generated_period": NSNull(), "generating": false],
     ]
 
+    /// One read statement whose line states change as the user acts on them.
+    private var statementLines: [[String: Any]] = {
+        func line(_ id: String, _ date: String, _ text: String, _ amount: String, _ state: String, _ match: [String: Any]? = nil) -> [String: Any] {
+            ["id": id, "line_date": date, "description": text, "amount": amount, "state": state, "match": match ?? NSNull()]
+        }
+        return [
+            line("sl1", "2026-10-02", "SHELL PETROL ALSANCAK", "1200.00", "matched", ["kind": "receipt", "id": "r2", "label": "Shell", "date": "2026-10-01"]),
+            line("sl2", "2026-10-05", "MIGROS TICARET A.S.", "320.40", "missing"),
+            line("sl3", "2026-10-14", "NETFLIX.COM", "229.99", "missing"),
+            line("sl4", "2026-10-22", "ATM NAKIT CEKIM", "500.00", "ignored"),
+        ]
+    }()
+    private var statementGone = false
+
+    private func statementJSON(lines: Bool) -> [String: Any] {
+        var out: [String: Any] = [
+            "id": "st1", "file_name": "ekim-kredi-karti-ekstresi.pdf", "status": "done", "error": NSNull(),
+            "created_at": iso(DemoClock.now), "line_count": statementLines.count,
+            "missing_count": statementLines.filter { $0["state"] as? String == "missing" }.count,
+            "first_date": "2026-10-02", "last_date": "2026-10-22",
+        ]
+        if lines { out["lines"] = statementLines }
+        return out
+    }
+
     private func ruleFrom(_ body: [String: Any], base: [String: Any]) -> [String: Any] {
         var rule = base
         for (key, value) in body {
@@ -285,6 +310,11 @@ final class DemoData: @unchecked Sendable {
             return ok(summary(month(period)))
         case ("GET", "/reports/monthly"):
             return ok(report(period ?? current.raw))
+        case ("GET", "/statements"):
+            return ok(statementGone ? [] : [statementJSON(lines: false)])
+        case ("POST", "/statements"):
+            return ok(["id": "st2", "file_name": "kasim.pdf", "status": "failed", "error": "Ekstrede harcama satırı bulunamadı.",
+                       "created_at": iso(Date()), "line_count": 0, "missing_count": 0, "first_date": NSNull(), "last_date": NSNull()], 201)
         case ("GET", "/expenses/recurring"):
             return ok(rules)
         case ("POST", "/expenses/recurring"):
@@ -321,7 +351,12 @@ final class DemoData: @unchecked Sendable {
         case ("GET", "/plans"):
             return ok(Self.plans)
         case ("GET", "/billing/me"):
-            return ok(["plan": Self.plans[0], "subscription": NSNull(),
+            // `-demoPlan pro` / `-demoPlan business` puts the demo company on a paid plan.
+            let args = ProcessInfo.processInfo.arguments
+            let planIndex = args.firstIndex(of: "-demoPlan").flatMap { i in
+                i + 1 < args.count ? ["pro": 1, "business": 2][args[i + 1]] : nil
+            } ?? 0
+            return ok(["plan": Self.plans[planIndex], "subscription": NSNull(),
                        "usage": ["limit": 10, "used": 8, "remaining": 2, "unlimited": false],
                        "custom_limit": false, "can_manage": role != .accountant,
                        "member_count": 4, "member_limit": 1])
@@ -393,6 +428,20 @@ final class DemoData: @unchecked Sendable {
             if path.hasSuffix("/decline") { return none }
             return ok(["id": "co-9", "name": "Ekin Kafe", "role": "uploader", "member_count": 4])
         }
+        if path.hasPrefix("/statements/st1") {
+            if method == "DELETE" { statementGone = true; return none }
+            let parts = url.pathComponents
+            if parts.count >= 5, let i = statementLines.firstIndex(where: { $0["id"] as? String == parts[4] }) {
+                if parts.last == "expense" {
+                    statementLines[i]["state"] = "expensed"
+                    statementLines[i]["match"] = ["kind": "expense", "id": "e99", "label": bodyJSON["description"] as? String ?? "", "date": statementLines[i]["line_date"]!]
+                } else {
+                    statementLines[i]["state"] = (bodyJSON["ignored"] as? Bool ?? false) ? "ignored" : "missing"
+                }
+            }
+            return ok(statementJSON(lines: true))
+        }
+        if path.hasPrefix("/statements/") { return ok(["id": url.lastPathComponent, "file_name": "kasim.pdf", "status": "failed", "error": "Ekstrede harcama satırı bulunamadı.", "created_at": iso(Date()), "line_count": 0, "missing_count": 0, "first_date": NSNull(), "last_date": NSNull(), "lines": []]) }
         if path.hasPrefix("/expenses/recurring/"), let i = rules.firstIndex(where: { $0["id"] as? String == url.lastPathComponent }) {
             if method == "DELETE" { rules.remove(at: i); return none }
             rules[i] = ruleFrom(bodyJSON, base: rules[i])
