@@ -91,6 +91,24 @@ enum API {
         try await client.request(.get, "/reports/monthly", query: ["period": period.raw])
     }
 
+    // MARK: Manual expenses
+
+    static func expenses(_ period: Period) async throws -> [Expense] {
+        try await client.request(.get, "/expenses", query: ["period": period.raw])
+    }
+
+    static func createExpense(_ body: ExpenseBody) async throws -> Expense {
+        try await client.request(.post, "/expenses", body: body)
+    }
+
+    static func updateExpense(_ id: String, _ body: ExpenseBody) async throws -> Expense {
+        try await client.request(.patch, "/expenses/\(id)", body: body)
+    }
+
+    static func deleteExpense(_ id: String) async throws {
+        try await client.send(.delete, "/expenses/\(id)")
+    }
+
     static func patchExtraction(_ id: String, _ patch: ExtractionPatch) async throws -> Extraction {
         try await client.request(.patch, "/receipts/\(id)/extraction", body: patch)
     }
