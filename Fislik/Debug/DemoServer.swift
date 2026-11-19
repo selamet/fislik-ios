@@ -284,7 +284,7 @@ final class DemoData: @unchecked Sendable {
             if let ids = bodyJSON["ids"] as? [String] { readIds.formUnion(ids) } else { readIds.formUnion(notifications.map { $0["id"] as! String }) }
             return none
         case ("GET", "/notifications/preferences"):
-            return ok(["issue_opened": true, "receipts_processed": true, "period_locked": true, "grant_events": false, "month_end_reminder": true, "weekly_digest": false])
+            return ok(["issue_opened": true, "receipts_processed": true, "period_locked": true, "grant_events": false, "month_end_reminder": true, "weekly_digest": false, "monthly_report": true])
         case ("GET", "/clients"):
             let rs = month(period)
             return ok([

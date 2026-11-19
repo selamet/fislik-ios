@@ -134,6 +134,10 @@ struct NotificationPrefs: Codable, Equatable {
     var grantEvents = false
     var monthEndReminder = true
     var weeklyDigest = false
+    /// Month-end spending report e-mail (owners and admins of paid companies).
+    /// Nil until the API has sent it, and then left out when saving, so an
+    /// API or cache without the switch never has it reset.
+    var monthlyReport: Bool?
 
     static var current: NotificationPrefs {
         get { (UserDefaults.standard.data(forKey: "notificationPrefs")).flatMap { try? JSONDecoder().decode(Self.self, from: $0) } ?? NotificationPrefs() }
@@ -144,6 +148,7 @@ struct NotificationPrefs: Codable, Equatable {
 /// 2AA — notification preferences and appearance.
 struct NotificationPrefsView: View {
     @Environment(AppModel.self) private var app
+    @State private var companies = CompanyStore.shared
     @State private var prefs = NotificationPrefs.current
     @State private var pushStatus: UNAuthorizationStatus = .notDetermined
     @State private var syncing = false
@@ -176,6 +181,17 @@ struct NotificationPrefsView: View {
                         }
                         RowDivider()
                         toggle("Davet kabul / red", $prefs.grantEvents)
+                    }
+                    if showsMonthlyReport {
+                        section("RAPORLAR")
+                        FGroupedCard {
+                            toggle(
+                                "Ay sonu harcama raporu",
+                                subtitle: "Pro ve İşletme planlarında, her ayın 1'inde e-postayla",
+                                Binding(get: { prefs.monthlyReport ?? true }, set: { prefs.monthlyReport = $0 })
+                            )
+                        }
+                        .accessibilityIdentifier("pref-monthly-report")
                     }
                     section("HATIRLATMALAR")
                     FGroupedCard {
@@ -215,6 +231,11 @@ struct NotificationPrefsView: View {
             if syncing { syncing = false; return }
             Task { try? await API.savePreferences(new) }
         }
+    }
+
+    /// Owners and admins of a company, once the API has said it knows the switch.
+    private var showsMonthlyReport: Bool {
+        !app.isAccountant && prefs.monthlyReport != nil && companies.active?.role != .uploader
     }
 
     private var pushSubtitle: String {

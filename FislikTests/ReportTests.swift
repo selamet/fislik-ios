@@ -136,3 +136,25 @@ final class ReportManualExpenseTests: XCTestCase {
         XCTAssertTrue(report.isEmpty)
     }
 }
+
+final class NotificationPrefsTests: XCTestCase {
+    func testMonthlyReportSwitchIsDecodedAndOnlySentWhenKnown() throws {
+        let json = """
+        {"issue_opened": true, "receipts_processed": true, "period_locked": false, "grant_events": false,
+         "month_end_reminder": true, "weekly_digest": false, "monthly_report": false}
+        """
+        let prefs = try APIClient.decoder.decode(NotificationPrefs.self, from: Data(json.utf8))
+        XCTAssertEqual(prefs.monthlyReport, false)
+        XCTAssertFalse(prefs.periodLocked)
+
+        let sent = try JSONSerialization.jsonObject(with: APIClient.encoder.encode(prefs)) as? [String: Any]
+        XCTAssertEqual(sent?["monthly_report"] as? Bool, false)
+
+        // An API (or a cached copy) without the switch decodes, and saving leaves it out.
+        let older = json.replacingOccurrences(of: ", \"monthly_report\": false", with: "")
+        let olderPrefs = try APIClient.decoder.decode(NotificationPrefs.self, from: Data(older.utf8))
+        XCTAssertNil(olderPrefs.monthlyReport)
+        let olderSent = try JSONSerialization.jsonObject(with: APIClient.encoder.encode(olderPrefs)) as? [String: Any]
+        XCTAssertNil(olderSent?["monthly_report"])
+    }
+}
