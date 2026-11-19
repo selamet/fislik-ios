@@ -161,6 +161,10 @@ struct ReportBody: View {
                 heroStat("TOPLAM KDV", TR.money(report.totals.vatTotal))
                 heroStat("FİŞ", "\(report.totals.receiptCount)")
             }
+            if report.totals.hasManual, let manual = report.totals.manualAmount {
+                Text("\(TR.money(manual)) elle girilen \(report.totals.manualCount ?? 0) giderden.")
+                    .fFont(11.5, .semibold).opacity(0.85)
+            }
             if report.totals.waitingCount > 0 {
                 Text("\(report.totals.waitingCount) fiş henüz okunmadı, tutarlara dahil değil.")
                     .fFont(11.5, .semibold).opacity(0.85)

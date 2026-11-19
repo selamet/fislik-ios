@@ -90,3 +90,49 @@ final class ReportTests: XCTestCase {
         XCTAssertEqual(ReportMath.heights([]), [])
     }
 }
+
+
+final class ReportManualExpenseTests: XCTestCase {
+    private func decode(_ json: String) throws -> MonthlyReport {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(MonthlyReport.self, from: DecimalNormalizer.normalize(Data(json.utf8)))
+    }
+
+    private let manualOnly = """
+    {"period": "2026-10", "scope": "company", "detailed": false,
+     "totals": {"receipt_count": 0, "analyzed_count": 0, "total_amount": "15000.00", "vat_total": "0",
+                "manual_count": 2, "manual_amount": "15000.50"},
+     "category_totals": {"kira": "15000.00", "abonelik": "0.50"}, "payment_method_totals": {},
+     "members": [], "merchants": [], "previous": null, "trend": []}
+    """
+
+    func testAMonthWithOnlyManualExpensesIsNotEmpty() throws {
+        let report = try decode(manualOnly)
+        XCTAssertFalse(report.isEmpty)
+        XCTAssertTrue(report.totals.hasManual)
+        XCTAssertEqual(report.totals.manualCount, 2)
+        XCTAssertEqual(report.totals.manualAmount, Decimal(string: "15000.50"))
+    }
+
+    func testNewCategoriesHaveLabels() throws {
+        let report = try decode(manualOnly)
+        XCTAssertEqual(report.categories.map(\.label), ["Kira", "Abonelik ve yazılım"])
+        XCTAssertEqual(CategoryLabels.label("maas"), "Maaş ve personel")
+        XCTAssertEqual(CategoryLabels.label("yakit"), "Yakıt")
+        XCTAssertEqual(CategoryLabels.label("bilinmeyen"), "bilinmeyen")
+        XCTAssertEqual(CategoryLabels.all.count, 16)
+    }
+
+    func testOlderAPIsWithoutManualFieldsStillDecode() throws {
+        let older = """
+        {"period": "2026-10", "scope": "company", "detailed": false,
+         "totals": {"receipt_count": 0, "analyzed_count": 0, "total_amount": "0", "vat_total": "0"},
+         "category_totals": {}, "payment_method_totals": {},
+         "members": [], "merchants": [], "previous": null, "trend": []}
+        """
+        let report = try decode(older)
+        XCTAssertNil(report.totals.manualCount)
+        XCTAssertTrue(report.isEmpty)
+    }
+}

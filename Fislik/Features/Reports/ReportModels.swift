@@ -4,8 +4,14 @@ import Foundation
 struct ReportTotals: Codable, Equatable {
     var receiptCount: Int
     var analyzedCount: Int
+    /// Receipts and manual expenses together.
     var totalAmount: Decimal
     var vatTotal: Decimal
+    /// The part entered by hand (no receipt); absent on older APIs.
+    var manualCount: Int?
+    var manualAmount: Decimal?
+
+    var hasManual: Bool { (manualCount ?? 0) > 0 }
 
     /// Receipts uploaded but not read yet; their amounts are not in the totals.
     var waitingCount: Int { max(receiptCount - analyzedCount, 0) }
@@ -64,11 +70,12 @@ struct MonthlyReport: Codable, Equatable {
     var trend: [ReportPeriodTotals]
 
     var isOwnScope: Bool { scope == "own" }
-    var isEmpty: Bool { totals.receiptCount == 0 }
+    /// Empty only when the month has neither receipts nor manual expenses.
+    var isEmpty: Bool { totals.receiptCount == 0 && !totals.hasManual }
 
     /// Categories, largest first, with their Turkish labels.
     var categories: [ReportLine] {
-        Self.lines(categoryTotals) { ExpenseCategory(rawValue: $0)?.label ?? $0 }
+        Self.lines(categoryTotals) { CategoryLabels.label($0) }
     }
 
     /// Payment methods, largest first, with their Turkish labels.
@@ -120,5 +127,26 @@ enum ReportMath {
     static func heights(_ trend: [ReportPeriodTotals]) -> [Double] {
         let largest = trend.map(\.totalAmount).max() ?? 0
         return trend.map { share($0.totalAmount, of: largest) }
+    }
+}
+
+/// Labels of every category a report or a manual expense can carry: the
+/// receipt categories plus the ones that only exist for manual entries.
+enum CategoryLabels {
+    static let manual: [(key: String, label: String)] = [
+        ("kira", "Kira"),
+        ("maas", "Maaş ve personel"),
+        ("abonelik", "Abonelik ve yazılım"),
+        ("banka", "Banka ve finansman"),
+        ("vergi", "Vergi ve resmi ödemeler"),
+        ("fatura", "Fatura (elektrik, su, doğalgaz)"),
+    ]
+
+    /// Every category in the order a picker shows them: manual-only first.
+    static let all: [(key: String, label: String)] =
+        manual + ExpenseCategory.allCases.map { ($0.rawValue, $0.label) }
+
+    static func label(_ key: String) -> String {
+        all.first { $0.key == key }?.label ?? key
     }
 }
