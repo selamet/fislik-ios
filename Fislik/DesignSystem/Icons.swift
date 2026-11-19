@@ -7,6 +7,7 @@ enum FIcon: String, CaseIterable {
     case building, keyRound, logOut, store, check, lock, clock, userPlus, userCheck, circleCheck
     case circleAlert, inbox, rotateCw, fileText, plus, download, arrowLeft, mail, scanFace
     case zap, eye, ellipsis, share, calendar, zoomIn, sun, zapOff, flashlight, package
+    case chartColumn
 }
 
 struct Icon: View {

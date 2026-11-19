@@ -89,6 +89,9 @@ struct ClientTabView: View {
         .environment(router)
         .environment(uploads)
         .onAppear(perform: consumeLink)
+        #if DEBUG
+        .onAppear(perform: openDebugRoute)
+        #endif
         // Purchases that complete outside the plan screen still reach the API.
         .task { BillingStore.shared.startListening() }
         .onChange(of: isUploader) { _, uploader in
@@ -121,12 +124,26 @@ struct ClientTabView: View {
         case .search: SearchView()
         case .credits: CreditsView()
         case .plan: PlanScreen()
+        case .reports: ReportsScreen(period: router.period)
         case .company: CompanyFormView(mode: .edit)
         case .notificationPrefs: NotificationPrefsView()
         case .changePassword: ChangePasswordView()
         case .accountants: AccountantScreen()
         }
     }
+
+    #if DEBUG
+    /// `-open reports` / `-open plan`: start on a pushed screen, for screenshots.
+    private func openDebugRoute() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-open"), i + 1 < args.count else { return }
+        switch args[i + 1] {
+        case "reports": router.receiptsPath = [.reports]
+        case "plan": router.receiptsPath = [.plan]
+        default: break
+        }
+    }
+    #endif
 
     private func consumeLink() {
         guard let link = app.pendingLink else { return }

@@ -86,6 +86,11 @@ enum API {
         try await client.request(.get, "/receipts/summary", query: ["period": period.raw, "client_id": clientId])
     }
 
+    /// Spending report of the active company for one month.
+    static func monthlyReport(_ period: Period) async throws -> MonthlyReport {
+        try await client.request(.get, "/reports/monthly", query: ["period": period.raw])
+    }
+
     static func patchExtraction(_ id: String, _ patch: ExtractionPatch) async throws -> Extraction {
         try await client.request(.patch, "/receipts/\(id)/extraction", body: patch)
     }
