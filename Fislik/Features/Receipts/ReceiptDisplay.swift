@@ -67,7 +67,14 @@ extension Receipt {
         if duplicate { out.append(("Mükerrer olabilir", FColor.warning)) }
         if uploadedByAccountant { out.append(("Muhasebeci yükledi", FColor.muted)) }
         if isQueued { out.append(("Sıraya alındı", FColor.muted)) }
+        if let splitLabel { out.append((splitLabel, FColor.muted)) }
         return out
+    }
+
+    /// "Toplu fotoğraf · 3 fiş" for a receipt split out of a photo with several documents.
+    var splitLabel: String? {
+        guard let splitCount, splitCount > 1 else { return nil }
+        return "Toplu fotoğraf · \(splitCount) fiş"
     }
 
     /// "Fatura", "Fatura · PDF", "PDF"

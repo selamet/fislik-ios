@@ -56,3 +56,20 @@ final class StatementTests: XCTestCase {
                        "--B\r\nContent-Disposition: form-data; name=\"file\"; filename=\"ek'im.pdf\"\r\nContent-Type: application/pdf\r\n\r\n%PDF\r\n--B--\r\n")
     }
 }
+
+final class SplitReceiptTests: XCTestCase {
+    func testSplitReceiptsAreLabelled() throws {
+        let json = """
+        [{"id": "r1", "period": "2026-10", "created_at": "2026-10-05T10:00:00Z", "image_url": "https://x/r1.jpg",
+          "content_type": "image/jpeg", "processed": false, "open_issue": null, "extraction": null, "uploaded_by": null,
+          "split_group": "r0", "split_count": 3},
+         {"id": "r2", "period": "2026-10", "created_at": "2026-10-05T10:00:00Z", "image_url": "https://x/r2.jpg",
+          "content_type": "image/jpeg", "processed": false, "open_issue": null, "extraction": null, "uploaded_by": null}]
+        """
+        let receipts = try APIClient.decoder.decode([Receipt].self, from: DecimalNormalizer.normalize(Data(json.utf8)))
+        XCTAssertEqual(receipts[0].splitCount, 3)
+        XCTAssertEqual(receipts[0].splitLabel, "Toplu fotoğraf · 3 fiş")
+        XCTAssertTrue(receipts[0].badges(duplicate: false).contains { $0.0 == "Toplu fotoğraf · 3 fiş" })
+        XCTAssertNil(receipts[1].splitLabel)
+    }
+}

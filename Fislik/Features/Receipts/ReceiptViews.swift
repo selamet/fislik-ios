@@ -161,6 +161,9 @@ struct ReceiptRow: View {
                     if let tag = receipt.docTag {
                         FTag(text: tag).fFont(9, .heavy)
                     }
+                    if let count = receipt.splitCount, count > 1 {
+                        FTag(text: "Toplu · \(count)").fFont(9, .heavy)
+                    }
                 }
                 HStack(spacing: 6) {
                     Text(subtitleExtra ?? TR.shortDay(receipt.displayDate))
