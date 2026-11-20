@@ -126,6 +126,10 @@ struct Receipt: Codable, Equatable, Identifiable {
     var openIssue: ReceiptIssue?
     var extraction: Extraction?
     let uploadedBy: String?
+    /// Set when one photo held several documents and was split into one
+    /// receipt each: the receipts share `splitGroup`; `splitCount` is how many.
+    var splitGroup: String?
+    var splitCount: Int?
 
     var isPDF: Bool { contentType == "application/pdf" }
 }
