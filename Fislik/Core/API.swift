@@ -131,6 +131,24 @@ enum API {
         try await client.send(.delete, "/expenses/recurring/\(id)")
     }
 
+    // MARK: Detected subscriptions
+
+    static func subscriptions() async throws -> DetectedSubscriptions {
+        try await client.request(.get, "/reports/subscriptions")
+    }
+
+    static func trackSubscription(_ id: String) async throws {
+        let _: TrackSubscriptionReply = try await client.request(.post, "/reports/subscriptions/\(id)/track", body: TrackSubscriptionBody())
+    }
+
+    static func dismissSubscription(_ id: String) async throws {
+        try await client.send(.post, "/reports/subscriptions/\(id)/dismiss")
+    }
+
+    static func restoreDismissedSubscriptions() async throws {
+        try await client.send(.delete, "/reports/subscriptions/dismissed")
+    }
+
     // MARK: Statements
 
     static func statements() async throws -> [Statement] {

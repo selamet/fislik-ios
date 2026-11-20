@@ -41,6 +41,7 @@ struct ReportsScreen: View {
                         if !report.isOwnScope {
                             ManualExpensesSection(period: period, version: expensesVersion) { await expensesChanged() }
                             RecurringExpensesSection(paid: report.detailed, version: expensesVersion) { await expensesChanged() }
+                            SubscriptionsSection(version: expensesVersion) { await expensesChanged() }
                             StatementsRow { router.receiptsPath.append(.statements) }
                         }
                     } else if let error {

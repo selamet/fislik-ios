@@ -9,21 +9,23 @@ final class RecurringFlow: XCTestCase {
 
         let add = app.buttons["add-recurring"]
         XCTAssertTrue(app.buttons["recurring-rr1"].waitForExistence(timeout: 10), "demo rules are listed")
-        for _ in 0..<6 where !add.isHittable { app.swipeUp(velocity: .slow) }
-        Thread.sleep(forTimeInterval: 1.5) // let the scroll settle before tapping
+        app.scrollToMiddle(add)
         add.tap()
 
         let save = app.buttons["save-recurring"]
         XCTAssertTrue(save.waitForExistence(timeout: 15), "the form opens")
+        // Menus first: the number pad would cover them.
+        app.buttons["recurring-day"].tap()
+        XCTAssertTrue(app.buttons["15"].waitForExistence(timeout: 15))
+        app.buttons["15"].tap()
+        app.buttons["recurring-category"].tap()
+        XCTAssertTrue(app.buttons["Abonelik ve yazılım"].waitForExistence(timeout: 15))
+        app.buttons["Abonelik ve yazılım"].tap()
         let fields = app.textFields
         fields.element(boundBy: 0).tap()
         fields.element(boundBy: 0).typeText("Muhasebe ücreti")
         fields.element(boundBy: 1).tap()
         fields.element(boundBy: 1).typeText("3.000")
-        app.buttons["recurring-day"].tap()
-        app.buttons["15"].tap()
-        app.buttons["recurring-category"].tap()
-        app.buttons["Abonelik ve yazılım"].tap()
         save.tap()
 
         let row = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Muhasebe ücreti")).firstMatch

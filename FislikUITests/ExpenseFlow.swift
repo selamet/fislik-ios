@@ -10,8 +10,7 @@ final class ExpenseFlow: XCTestCase {
 
         let add = app.buttons["add-expense"]
         XCTAssertTrue(app.buttons["expense-e1"].waitForExistence(timeout: 10), "demo expenses are listed")
-        for _ in 0..<4 where !add.isHittable { app.swipeUp(velocity: .slow) }
-        Thread.sleep(forTimeInterval: 1.5) // let the scroll settle before tapping
+        app.scrollToMiddle(add)
         add.tap()
 
         let save = app.buttons["save-expense"]
@@ -20,13 +19,16 @@ final class ExpenseFlow: XCTestCase {
         save.tap()
         XCTAssertTrue(app.staticTexts["Kısa bir açıklama yaz."].waitForExistence(timeout: 15))
 
+        // Pick the category before typing: the number pad would cover the menu.
+        app.buttons["expense-category"].tap()
+        let category = app.buttons["Maaş ve personel"]
+        XCTAssertTrue(category.waitForExistence(timeout: 15))
+        category.tap()
         let fields = app.textFields
         fields.element(boundBy: 0).tap()
         fields.element(boundBy: 0).typeText("Personel maaşları")
         fields.element(boundBy: 1).tap()
         fields.element(boundBy: 1).typeText("42.500")
-        app.buttons["expense-category"].tap()
-        app.buttons["Maaş ve personel"].tap()
         save.tap()
 
         let row = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Personel maaşları")).firstMatch
@@ -34,6 +36,7 @@ final class ExpenseFlow: XCTestCase {
         XCTAssertTrue(row.label.contains("42.500,00"), row.label)
         XCTAssertTrue(row.label.contains("Maaş ve personel"), row.label)
 
+        app.scrollToMiddle(row)
         row.tap()
         XCTAssertTrue(app.buttons["Gideri sil"].waitForExistence(timeout: 15))
         app.buttons["Gideri sil"].tap()

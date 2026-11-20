@@ -288,7 +288,10 @@ final class APIClient: @unchecked Sendable {
 /// The API serializes Decimals as JSON strings ("36.36"). Convert those to JSON
 /// numbers (preserving precision) for the money keys so `Decimal` decodes directly.
 enum DecimalNormalizer {
-    static let moneyKeys: Set<String> = ["total_amount", "vat_total", "amount", "vat_amount", "manual_amount"]
+    static let moneyKeys: Set<String> = [
+        "total_amount", "vat_total", "amount", "vat_amount", "manual_amount",
+        "last_amount", "monthly_average", "yearly_estimate", "yearly_total",
+    ]
     static let moneyMapKeys: Set<String> = ["vat_by_rate", "payment_method_totals", "category_totals"]
 
     static func normalize(_ data: Data) -> Data {
