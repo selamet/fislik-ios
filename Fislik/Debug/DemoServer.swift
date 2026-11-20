@@ -126,6 +126,25 @@ final class DemoData: @unchecked Sendable {
         ]
     }()
     private var statementGone = false
+    private var subscriptionsTracked: Set<String> = []
+    private var subscriptionsDismissed: Set<String> = []
+
+    private var subscriptions: [String: Any] {
+        func sub(_ id: String, _ name: String, _ category: String, _ last: String, _ average: String, _ yearly: String,
+                 _ months: Int, _ day: Int, _ change: Int) -> [String: Any] {
+            ["id": id, "name": name, "category": category, "last_amount": last, "monthly_average": average,
+             "yearly_estimate": yearly, "months_seen": months, "last_date": String(format: "%@-%02d", current.raw, day),
+             "day_of_month": day, "price_change_percent": change, "price_increased": change > 10]
+        }
+        let all = [
+            sub("ds1", "Adobe Creative Cloud", "abonelik", "1250.00", "1250.00", "15000.00", 6, 3, 0),
+            sub("ds2", "Türk Telekom", "iletisim", "849.00", "712.25", "8547.00", 6, 12, 32),
+            sub("ds3", "Netflix", "abonelik", "229.99", "229.99", "2759.88", 4, 5, 0),
+        ].filter { !subscriptionsTracked.union(subscriptionsDismissed).contains($0["id"] as! String) }
+        let total = all.reduce(Decimal(0)) { $0 + Decimal(string: $1["yearly_estimate"] as! String)! }
+        return ["available": true, "items": all, "yearly_total": "\(total)",
+                "dismissed_count": subscriptionsDismissed.count]
+    }
 
     private func statementJSON(lines: Bool) -> [String: Any] {
         var out: [String: Any] = [
@@ -310,6 +329,11 @@ final class DemoData: @unchecked Sendable {
             return ok(summary(month(period)))
         case ("GET", "/reports/monthly"):
             return ok(report(period ?? current.raw))
+        case ("GET", "/reports/subscriptions"):
+            return ok(subscriptions)
+        case ("DELETE", "/reports/subscriptions/dismissed"):
+            subscriptionsDismissed = []
+            return none
         case ("GET", "/statements"):
             return ok(statementGone ? [] : [statementJSON(lines: false)])
         case ("POST", "/statements"):
@@ -427,6 +451,12 @@ final class DemoData: @unchecked Sendable {
         if path.hasPrefix("/memberships/") {
             if path.hasSuffix("/decline") { return none }
             return ok(["id": "co-9", "name": "Ekin Kafe", "role": "uploader", "member_count": 4])
+        }
+        if path.hasPrefix("/reports/subscriptions/") {
+            let id = url.deletingLastPathComponent().lastPathComponent
+            if path.hasSuffix("/dismiss") { subscriptionsDismissed.insert(id); return none }
+            subscriptionsTracked.insert(id)
+            return ok(["recurring_id": "rr-\(id)"], 201)
         }
         if path.hasPrefix("/statements/st1") {
             if method == "DELETE" { statementGone = true; return none }
