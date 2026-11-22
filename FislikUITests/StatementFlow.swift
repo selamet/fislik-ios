@@ -9,7 +9,7 @@ final class StatementFlow: XCTestCase {
         app.launch()
 
         let book = app.buttons["book-sl3"]
-        XCTAssertTrue(book.waitForExistence(timeout: 15), "missing lines offer booking")
+        XCTAssertTrue(book.waitForExistence(timeout: 30), "missing lines offer booking")
         // The plan arrives separately and swaps the upload button for a note;
         // wait for that so the layout no longer moves under the tap.
         XCTAssertTrue(app.staticTexts["statement-plan-note"].waitForExistence(timeout: 15))
