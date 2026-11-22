@@ -54,6 +54,15 @@ Gizlilik Politikası: https://fislik.selamet.dev/gizlilik
 ## Keywords (100, comma-separated)
 fiş,fatura,kdv,muhasebe,muhasebeci,mali müşavir,gider,e-fatura,e-arşiv,tarayıcı,vergi,makbuz
 
+## What's New (1.2)
+• Harcama raporları: kişi, kategori ve satıcıya göre aylık harcama, geçen aya göre değişim ve son 6 ayın seyri.
+• Elle gider: kira, maaş, abonelik gibi fişi olmayan harcamaları ekle.
+• Tekrarlayan giderler: her ay aynı olan kalemleri bir kez tanımla, kendiliğinden eklensin (Pro ve İşletme).
+• Ekstre karşılaştırma: kart ya da hesap ekstreni yükle, fişi eksik harcamaları gör (Pro ve İşletme).
+• Abonelikler: her ay tekrar eden ödemelerini ve fiyat artışlarını otomatik bul (Pro ve İşletme).
+• Tek fotoğrafta birden fazla fiş varsa her biri ayrı fiş olarak kaydedilir.
+• Ay sonu harcama raporu e-postası için bildirim ayarı.
+
 ## What's New (1.1)
 • Pro ve İşletme planları: daha fazla fiş okuma ve ekip üyesi için planını uygulamadan yükselt.
 • Şirket ve Profil ekranlarında plan kartı: bu ayki kullanımını ve planını tek bakışta gör.
@@ -85,6 +94,12 @@ Upload order: 01-home, 02-detail, 03-add, 04-send, 05-notifications, 06-clients,
   ("Planı yükselt"), or open the Şirket tab and tap the same card. "Satın alımları geri yükle" restores purchases;
   Terms of Use and Privacy Policy links are at the bottom of that screen.
   Purchases are verified on our server (StoreKit 2 signed transactions, App Store Server Notifications V2).
+  Version 1.2 adds spending reports and expense tools for owners and admins. In the client demo account, open the Fişler tab
+  and tap "Harcama raporu" under the month totals. The reports screen shows the month's totals and breakdowns, and lets the
+  user add manual expenses ("Gider ekle"). Recurring expenses, statement comparison ("Ekstre karşılaştırma": the user picks a
+  PDF, .xlsx or CSV card statement from Files; it is read on our server and the file is not stored) and detected
+  subscriptions are part of the Pro and Business subscriptions; on the free plan these sections show a short explanation
+  instead. A photo that contains several receipts is now saved as one receipt per document.
 
 ## App Privacy (nutrition label)
 Data used to track you: **None**.
@@ -95,7 +110,7 @@ Data linked to you (all for **App Functionality**, none for tracking):
 | Contact Info | Name, Email Address |
 | Identifiers | User ID |
 | User Content | Photos or Videos, Other User Content (receipts, invoices) |
-| Financial Info | Other Financial Info (receipt totals and VAT) |
+| Financial Info | Other Financial Info (receipt totals and VAT, manual expenses, spending lines read from uploaded statements) |
 
 | Purchases | Purchase History (the company's subscription plan) |
 
