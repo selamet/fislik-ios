@@ -85,6 +85,9 @@ private struct NotificationRow: View {
                 }
                 .fFont(11, .semibold)
                 .foregroundStyle(FColor.muted)
+                if let inviteAction = content.inviteAction {
+                    InviteActionsRow(action: inviteAction)
+                }
             }
             Spacer(minLength: 0)
             if !notification.read {

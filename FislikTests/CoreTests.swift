@@ -367,3 +367,36 @@ final class InviteCopyTests: XCTestCase {
         XCTAssertEqual(InviteCopy.headline(info), "ABC şirketine fiş yükleyici olarak davet edildin")
     }
 }
+
+final class InviteActionStateTests: XCTestCase {
+    func testStateFromServerStatus() {
+        XCTAssertEqual(InviteActionsRow.State(status: "pending", local: nil), .open)
+        XCTAssertEqual(InviteActionsRow.State(status: "accepted", local: nil), .accepted)
+        XCTAssertEqual(InviteActionsRow.State(status: "closed", local: nil), .gone)
+    }
+
+    func testLocalOutcomeWins() {
+        XCTAssertEqual(InviteActionsRow.State(status: "pending", local: .declined), .declined)
+        XCTAssertEqual(InviteActionsRow.State(status: "pending", local: .gone), .gone)
+    }
+
+    @MainActor
+    func testInviteNotificationsCarryActions() {
+        let note = AppNotification(id: "n1", type: "member_invite", payload: ["membership_id": .string("m1"), "company_name": .string("ABC")], read: false, createdAt: .now, inviteStatus: "pending")
+        let content = NotificationContent(note, isAccountant: false, accountantName: nil)
+        XCTAssertEqual(content.inviteAction, InviteAction(kind: .member, id: "m1", status: "pending", invitedRole: .client, inviterName: nil))
+        XCTAssertNil(content.link)
+
+        let grant = AppNotification(id: "n2", type: "grant_invite", payload: ["grant_id": .string("g1"), "role": .string("accountant")], read: false, createdAt: .now, inviteStatus: "pending")
+        XCTAssertEqual(NotificationContent(grant, isAccountant: false, accountantName: nil).inviteAction?.invitedRole, .client)
+
+        let old = AppNotification(id: "n3", type: "member_invite", payload: ["membership_id": .string("m1")], read: false, createdAt: .now)
+        XCTAssertNil(NotificationContent(old, isAccountant: false, accountantName: nil).inviteAction)
+    }
+
+    @MainActor
+    func testMemberInviteDeclinedText() {
+        let note = AppNotification(id: "n4", type: "member_invite_declined", payload: ["email": .string("d@x.com"), "company_name": .string("ABC")], read: false, createdAt: .now)
+        XCTAssertEqual(NotificationContent(note, isAccountant: false, accountantName: nil).text, "d@x.com, ABC ekip davetini reddetti")
+    }
+}
