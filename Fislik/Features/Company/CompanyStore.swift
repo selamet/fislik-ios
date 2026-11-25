@@ -21,6 +21,16 @@ final class CompanyStore {
     private(set) var activeId: String? = UserDefaults.standard.string(forKey: activeKey)
 
     var active: CompanyMembership? { companies.first { $0.id == activeId } }
+    /// True once the list has actually loaded (a failed load keeps it false).
+    private(set) var loaded = false
+
+    /// A client with no company at all: they left (or were removed from) the
+    /// only team they had joined through an invite.
+    var hasNoCompany: Bool { Self.showsNoCompany(loaded: loaded, companies: companies) }
+
+    nonisolated static func showsNoCompany(loaded: Bool, companies: [CompanyMembership]) -> Bool {
+        loaded && companies.isEmpty
+    }
 
     /// Read by `APIClient` on any thread.
     nonisolated static func storedActiveId() -> String? {
@@ -30,6 +40,7 @@ final class CompanyStore {
     func load() async {
         guard let list = try? await API.companies() else { return }
         companies = list
+        loaded = true
         if !list.contains(where: { $0.id == activeId }) {
             setActive(list.first?.id)
         }
@@ -76,6 +87,7 @@ final class CompanyStore {
     }
 
     func reset() {
+        loaded = false
         companies = []
         invites = []
         setActive(nil)

@@ -400,3 +400,11 @@ final class InviteActionStateTests: XCTestCase {
         XCTAssertEqual(NotificationContent(note, isAccountant: false, accountantName: nil).text, "d@x.com, ABC ekip davetini reddetti")
     }
 }
+
+final class NoCompanyTests: XCTestCase {
+    func testNoCompanyOnlyAfterALoadedEmptyList() {
+        XCTAssertFalse(CompanyStore.showsNoCompany(loaded: false, companies: []))
+        XCTAssertTrue(CompanyStore.showsNoCompany(loaded: true, companies: []))
+        XCTAssertFalse(CompanyStore.showsNoCompany(loaded: true, companies: [CompanyMembership(id: "c1", name: "A", role: .owner)]))
+    }
+}

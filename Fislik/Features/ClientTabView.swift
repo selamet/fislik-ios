@@ -31,8 +31,12 @@ struct ClientTabView: View {
         VStack(spacing: 0) {
             ZStack {
                 tab(.receipts) {
-                    NavigationStack(path: $router.receiptsPath) {
-                        HomeView().navigationDestination(for: ClientRoute.self, destination: destination)
+                    if companies.hasNoCompany {
+                        NoCompanyView()
+                    } else {
+                        NavigationStack(path: $router.receiptsPath) {
+                            HomeView().navigationDestination(for: ClientRoute.self, destination: destination)
+                        }
                     }
                 }
                 tab(.accountant) {
