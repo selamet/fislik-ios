@@ -261,3 +261,52 @@ final class WidgetCompanyTests: XCTestCase {
         XCTAssertEqual(data.headerLabel, "EKİN KAFE · \(TR.upper(Period.current.monthName))")
     }
 }
+
+final class InviteDecodingTests: XCTestCase {
+    func testInviteLookupDecodes() throws {
+        let json = """
+        {"kind":"grant","inviter_name":"Mehmet","company_name":null,"role":"client",
+         "email":"m@x.com","account_exists":true,"account_role":"client"}
+        """
+        let info = try APIClient.decoder.decode(InviteLookup.self, from: Data(json.utf8))
+        XCTAssertEqual(info.kind, .grant)
+        XCTAssertNil(info.companyName)
+        XCTAssertEqual(info.accountRole, .client)
+        XCTAssertEqual(info.invitedAccountRole, .client)
+    }
+
+    func testMemberInviteIsForClients() throws {
+        let json = """
+        {"kind":"member","inviter_name":null,"company_name":"ABC","role":"uploader",
+         "email":"d@x.com","account_exists":false,"account_role":null}
+        """
+        let info = try APIClient.decoder.decode(InviteLookup.self, from: Data(json.utf8))
+        XCTAssertEqual(info.invitedAccountRole, .client)
+        XCTAssertNil(info.accountRole)
+    }
+
+    func testAuthResponseWithJoinedViaInvite() throws {
+        let json = """
+        {"id":"u1","email":"d@x.com","full_name":"D","role":"client","access_token":"t",
+         "joined_via_invite":{"kind":"member","company_id":"c1","company_name":"ABC","role":"uploader","inviter_name":"S"}}
+        """
+        let auth = try APIClient.decoder.decode(AuthResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(auth.joinedViaInvite?.companyId, "c1")
+        XCTAssertEqual(auth.joinedViaInvite?.kind, .member)
+    }
+
+    func testAuthResponseWithoutJoinedViaInvite() throws {
+        let json = #"{"id":"u1","email":"d@x.com","full_name":"D","role":"client","access_token":"t"}"#
+        let auth = try APIClient.decoder.decode(AuthResponse.self, from: Data(json.utf8))
+        XCTAssertNil(auth.joinedViaInvite)
+    }
+
+    func testNotificationInviteStatus() throws {
+        let json = """
+        {"id":"n1","type":"member_invite","payload":{"membership_id":"m1"},"read":false,
+         "created_at":"2026-11-25T10:00:00Z","invite_status":"pending"}
+        """
+        let note = try APIClient.decoder.decode(AppNotification.self, from: Data(json.utf8))
+        XCTAssertEqual(note.inviteStatus, "pending")
+    }
+}
