@@ -168,7 +168,10 @@ struct RolePickerView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("FİŞLİK'İ NASIL KULLANACAKSIN?").fFont(12.5, .bold, tracking: 0.2).foregroundStyle(FColor.muted)
                     .padding(.top, 12)
+                // Signing up through an invite: the invite fixes the role.
                 RoleCards(role: $role)
+                    .disabled(auth.pendingInvite != nil)
+                    .onAppear { if let invited = auth.pendingInvite?.role { role = invited } }
                 AuthErrorText(error: auth.error)
                 Button {
                     Task { await auth.completeOAuth(app: app, token: registrationToken, role: role) }

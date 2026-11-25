@@ -310,3 +310,60 @@ final class InviteDecodingTests: XCTestCase {
         XCTAssertEqual(note.inviteStatus, "pending")
     }
 }
+
+@MainActor
+final class InviteRoutingTests: XCTestCase {
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: "onboardingDone")
+        super.tearDown()
+    }
+
+    func testParsesBothInviteLinks() {
+        XCTAssertEqual(AppModel.parse(URL(string: "https://fislik.selamet.dev/uye-davet/abc")!), .memberInvite(token: "abc"))
+        XCTAssertEqual(AppModel.parse(URL(string: "https://fislik.selamet.dev/davet/xyz")!), .invite(token: "xyz"))
+        XCTAssertEqual(AppModel.inviteToken(of: .memberInvite(token: "abc")), "abc")
+        XCTAssertEqual(AppModel.inviteToken(of: .invite(token: "xyz")), "xyz")
+        XCTAssertNil(AppModel.inviteToken(of: .camera))
+    }
+
+    func testSkipsCompanySetupAfterJoiningThroughInvite() {
+        XCTAssertFalse(AppModel.skipsCompanySetup(joined: nil))
+        let joined = JoinedViaInvite(kind: .member, companyId: "c1", companyName: "ABC", role: "uploader", inviterName: nil)
+        XCTAssertTrue(AppModel.skipsCompanySetup(joined: joined))
+    }
+
+    func testInviteLinkSkipsIntroPager() {
+        let app = AppModel()
+        app.phase = .onboarding
+        app.handle(url: URL(string: "https://fislik.selamet.dev/uye-davet/abc")!)
+        XCTAssertEqual(app.phase, .auth)
+        XCTAssertEqual(app.pendingLink, .memberInvite(token: "abc"))
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "onboardingDone"))
+    }
+
+    func testOtherLinksKeepThePager() {
+        let app = AppModel()
+        app.phase = .onboarding
+        app.handle(url: URL(string: "https://fislik.selamet.dev/fis/r1")!)
+        XCTAssertEqual(app.phase, .onboarding)
+    }
+}
+
+final class InviteCopyTests: XCTestCase {
+    private func joined(_ kind: InviteKind, _ role: String, inviter: String? = nil) -> JoinedViaInvite {
+        JoinedViaInvite(kind: kind, companyId: "c1", companyName: "ABC", role: role, inviterName: inviter)
+    }
+
+    func testWelcomeCopyPerRole() {
+        XCTAssertEqual(InviteCopy.welcome(joined(.member, "uploader")).title, "ABC ekibine katıldın")
+        XCTAssertTrue(InviteCopy.welcome(joined(.member, "uploader")).opensCamera)
+        XCTAssertEqual(InviteCopy.welcome(joined(.member, "admin")).action, "Fişlere göz at")
+        XCTAssertEqual(InviteCopy.welcome(joined(.grant, "accountant")).title, "ABC artık mükelleflerinde")
+        XCTAssertEqual(InviteCopy.welcome(joined(.grant, "client", inviter: "Mehmet")).title, "Muhasebecin Mehmet bağlandı")
+    }
+
+    func testHeadline() {
+        let info = InviteLookup(kind: .member, inviterName: "S", companyName: "ABC", role: "uploader", email: "d@x", accountExists: false, accountRole: nil)
+        XCTAssertEqual(InviteCopy.headline(info), "ABC şirketine fiş yükleyici olarak davet edildin")
+    }
+}

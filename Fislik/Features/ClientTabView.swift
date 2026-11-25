@@ -85,6 +85,16 @@ struct ClientTabView: View {
         .fullScreenCover(item: $router.memberInvite) { source in
             AcceptMemberInviteView(source: source)
         }
+        .sheet(item: $router.inviteLink) { link in
+            InviteSheetView(token: link.token)
+        }
+        .fullScreenCover(item: Binding(get: { app.joined }, set: { app.joined = $0 })) { joined in
+            WelcomeView(joined: joined) { openCamera in
+                app.joined = nil
+                router.tab = .receipts
+                if openCamera { router.sheet = .camera }
+            }
+        }
         // After the presentation modifiers so sheets and covers inherit them too.
         .environment(router)
         .environment(uploads)
@@ -163,11 +173,8 @@ struct ClientTabView: View {
             router.tab = .receipts
             router.receiptsPath = []
             router.period = p
-        case .invite(let token):
-            router.tab = .accountant
-            Task { _ = try? await API.acceptInvite(token: token); await ReceiptStore.shared.refreshGrants() }
-        case .memberInvite(let token):
-            router.memberInvite = .token(token)
+        case .invite(let token), .memberInvite(let token):
+            router.inviteLink = InviteLinkToken(token: token)
         case .memberInviteId(let id):
             Task {
                 await companies.loadInvites()
