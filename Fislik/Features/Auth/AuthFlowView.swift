@@ -15,7 +15,9 @@ final class AuthModel {
     var busy = false
     var error: String?
     var path: [AuthRoute] = []
-    var inviteToken: String?
+    /// The invite (either kind) the visitor came through, kept while they
+    /// register, log in or detour through Apple/Google.
+    var pendingInvite: PendingInvite?
     /// Apple's single-use authorization code, held until the role picker creates the account.
     private var pendingAppleCode: String?
 
@@ -40,8 +42,8 @@ final class AuthModel {
     func login(app: AppModel, email: String, password: String) async {
         await run({
             let auth = try await API.login(email: email.trimmingCharacters(in: .whitespaces), password: password)
-            await app.signedIn(auth)
-            await acceptPendingInvite()
+            await app.signedIn(auth, inviteInProgress: pendingInvite != nil)
+            await acceptPendingInvite(app: app)
         }, map: { e in
             switch e.status {
             case 401: "E-posta veya şifre hatalı."
@@ -53,7 +55,9 @@ final class AuthModel {
 
     func register(app: AppModel, name: String, email: String, password: String, role: UserRole) async {
         await run({
-            let auth = try await API.register(email: email.trimmingCharacters(in: .whitespaces), password: password, fullName: name.trimmingCharacters(in: .whitespaces), role: role, inviteToken: inviteToken)
+            let tokens = inviteTokens(for: role)
+            let auth = try await API.register(email: email.trimmingCharacters(in: .whitespaces), password: password, fullName: name.trimmingCharacters(in: .whitespaces), role: role, inviteToken: tokens.grant, memberInviteToken: tokens.member)
+            pendingInvite = nil
             await app.signedIn(auth)
         }, map: { e in e.status == 409 ? "Bu e-posta ile zaten bir hesap var." : nil })
     }
@@ -90,8 +94,8 @@ final class AuthModel {
         switch result.status {
         case .loggedIn:
             guard let user = result.user else { throw SocialAuthError.failed }
-            await app.signedIn(user)
-            await acceptPendingInvite()
+            await app.signedIn(user, inviteInProgress: pendingInvite != nil)
+            await acceptPendingInvite(app: app)
         case .needsRole:
             guard let token = result.registrationToken else { throw SocialAuthError.failed }
             path.append(.rolePicker(registrationToken: token))
@@ -100,19 +104,54 @@ final class AuthModel {
 
     func completeOAuth(app: AppModel, token: String, role: UserRole) async {
         await run({
-            let auth = try await API.oauthRegister(token: token, role: role, authorizationCode: pendingAppleCode)
+            let tokens = inviteTokens(for: role)
+            let auth = try await API.oauthRegister(token: token, role: role, authorizationCode: pendingAppleCode, inviteToken: tokens.grant, memberInviteToken: tokens.member)
             pendingAppleCode = nil
+            pendingInvite = nil
             await app.signedIn(auth)
-            await acceptPendingInvite()
         }, map: { e in e.status == 401 ? "Süre doldu, tekrar giriş yap." : nil })
     }
 
-    /// After logging in from the invite screen, accept the invite with the new session.
-    private func acceptPendingInvite() async {
-        guard let token = inviteToken else { return }
-        _ = try? await API.acceptInvite(token: token)
-        inviteToken = nil
+    /// Forgets the invite once its landing is no longer on the stack (the
+    /// visitor went back), so a later plain login doesn't accept it silently.
+    func syncInviteWithPath() {
+        let onInvite = path.contains { if case .invite = $0 { true } else { false } }
+        if !onInvite { pendingInvite = nil }
     }
+
+    /// The registration field carrying the pending invite, when it is for this role.
+    private func inviteTokens(for role: UserRole) -> (grant: String?, member: String?) {
+        guard let invite = pendingInvite, invite.role == role else { return (nil, nil) }
+        return invite.kind == .member ? (nil, invite.token) : (invite.token, nil)
+    }
+
+    /// After logging in through an invite, accept it with the new session.
+    /// Anything that needs a choice or an explanation (several companies,
+    /// wrong account, invite gone) opens the signed-in invite sheet instead.
+    private func acceptPendingInvite(app: AppModel) async {
+        guard let invite = pendingInvite else { return }
+        pendingInvite = nil
+        let link: AppModel.DeepLink = invite.kind == .member ? .memberInvite(token: invite.token) : .invite(token: invite.token)
+        var companyId: String?
+        if invite.kind == .grant, app.user?.role == .client {
+            let managed = CompanyStore.shared.companies.filter { $0.role != .uploader }
+            guard managed.count == 1 else { app.pendingLink = link; return }
+            companyId = managed[0].id
+        }
+        do {
+            await app.didJoin(try await API.acceptInvite(token: invite.token, companyId: companyId))
+        } catch {
+            app.pendingLink = link
+        }
+    }
+}
+
+/// An invite link the visitor is in the middle of accepting.
+struct PendingInvite: Equatable {
+    let kind: InviteKind
+    let token: String
+    /// The account role the invite is for.
+    let role: UserRole
 }
 
 struct AuthFlowView: View {
@@ -127,7 +166,7 @@ struct AuthFlowView: View {
                     case .register: RegisterView()
                     case .forgot: ForgotPasswordView()
                     case .newPassword(let token): NewPasswordView(token: token)
-                    case .invite(let token): InviteAcceptView(token: token)
+                    case .invite(let token): InviteLandingView(token: token)
                     case .rolePicker(let token): RolePickerView(registrationToken: token)
                     }
                 }
@@ -135,11 +174,12 @@ struct AuthFlowView: View {
         .environment(model)
         .onAppear(perform: consumeLink)
         .onChange(of: app.pendingLink) { consumeLink() }
+        .onChange(of: model.path) { model.syncInviteWithPath() }
     }
 
     private func consumeLink() {
         switch app.pendingLink {
-        case .invite(let token):
+        case .invite(let token), .memberInvite(let token):
             model.path = [.invite(token: token)]
             app.pendingLink = nil
         case .passwordReset(let token):

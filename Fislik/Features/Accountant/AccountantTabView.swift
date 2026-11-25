@@ -15,6 +15,8 @@ final class AccountantRouter {
     var profilePath: [ClientRoute] = []
     var period: Period = .current
     var inviting = false
+    /// An invite link (either kind) opened while signed in.
+    var inviteLink: InviteLinkToken?
     /// Client-scoped stores, kept so detail screens share state with the month grid.
     @ObservationIgnored private var stores: [String: ReceiptStore] = [:]
 
@@ -77,6 +79,18 @@ struct AccountantTabView: View {
         }
         .animation(.easeOut(duration: 0.2), value: pathEmpty)
         .ignoresSafeArea(.keyboard)
+        .sheet(item: $router.inviteLink, onDismiss: {
+            app.presentQueuedWelcome()
+            Task { await clients.load(router.period, force: true) }
+        }) { link in
+            InviteSheetView(token: link.token)
+        }
+        .fullScreenCover(item: Binding(get: { app.joined }, set: { app.joined = $0 })) { joined in
+            WelcomeView(joined: joined) { _ in
+                app.joined = nil
+                router.tab = .clients
+            }
+        }
         .sheet(isPresented: $router.inviting) {
             InviteSheet(invitingAccountant: false) { Task { await clients.load(router.period, force: true) } }
         }
@@ -121,8 +135,8 @@ struct AccountantTabView: View {
         switch app.pendingLink {
         case .notifications?: router.tab = .notifications
         case .month(let p)?: router.period = p; router.tab = .clients
-        case .invite(let token)?:
-            Task { _ = try? await API.acceptInvite(token: token); await clients.load(router.period, force: true) }
+        case .invite(let token)?, .memberInvite(let token)?:
+            router.inviteLink = InviteLinkToken(token: token)
         default: return
         }
         app.pendingLink = nil

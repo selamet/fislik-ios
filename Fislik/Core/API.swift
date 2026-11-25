@@ -6,17 +6,17 @@ enum API {
 
     // MARK: Auth
 
-    struct RegisterBody: Encodable { let email, password, fullName: String; let role: UserRole; let inviteToken: String? }
+    struct RegisterBody: Encodable { let email, password, fullName: String; let role: UserRole; let inviteToken: String?; var memberInviteToken: String? = nil }
     struct LoginBody: Encodable { let email, password: String }
     struct GoogleBody: Encodable { let credential: String }
     struct AppleBody: Encodable { let identityToken: String; let authorizationCode: String?; let fullName: String? }
-    struct OAuthRegisterBody: Encodable { let registrationToken: String; let role: UserRole; let authorizationCode: String? }
+    struct OAuthRegisterBody: Encodable { let registrationToken: String; let role: UserRole; let authorizationCode: String?; var inviteToken: String? = nil; var memberInviteToken: String? = nil }
     struct ChangePasswordBody: Encodable { let currentPassword, newPassword: String }
     struct EmailBody: Encodable { let email: String }
     struct ResetConfirmBody: Encodable { let token, newPassword: String }
 
-    static func register(email: String, password: String, fullName: String, role: UserRole, inviteToken: String?) async throws -> AuthResponse {
-        try await client.request(.post, "/auth/register", body: RegisterBody(email: email, password: password, fullName: fullName, role: role, inviteToken: inviteToken), authorized: false)
+    static func register(email: String, password: String, fullName: String, role: UserRole, inviteToken: String?, memberInviteToken: String? = nil) async throws -> AuthResponse {
+        try await client.request(.post, "/auth/register", body: RegisterBody(email: email, password: password, fullName: fullName, role: role, inviteToken: inviteToken, memberInviteToken: memberInviteToken), authorized: false)
     }
 
     static func login(email: String, password: String) async throws -> AuthResponse {
@@ -31,8 +31,25 @@ enum API {
         try await client.request(.post, "/auth/oauth/apple", body: AppleBody(identityToken: identityToken, authorizationCode: authorizationCode, fullName: fullName), authorized: false)
     }
 
-    static func oauthRegister(token: String, role: UserRole, authorizationCode: String?) async throws -> AuthResponse {
-        try await client.request(.post, "/auth/oauth/register", body: OAuthRegisterBody(registrationToken: token, role: role, authorizationCode: authorizationCode), authorized: false)
+    static func oauthRegister(token: String, role: UserRole, authorizationCode: String?, inviteToken: String? = nil, memberInviteToken: String? = nil) async throws -> AuthResponse {
+        try await client.request(.post, "/auth/oauth/register", body: OAuthRegisterBody(registrationToken: token, role: role, authorizationCode: authorizationCode, inviteToken: inviteToken, memberInviteToken: memberInviteToken), authorized: false)
+    }
+
+    // MARK: Invite links of either kind
+
+    static func invite(token: String) async throws -> InviteLookup {
+        try await client.request(.get, "/invites/\(token)", authorized: false)
+    }
+
+    /// `companyId` picks the company a client links an accountant to.
+    static func acceptInvite(token: String, companyId: String?) async throws -> JoinedViaInvite {
+        try await APIClient.$pinnedCompanyId.withValue(companyId) {
+            try await client.request(.post, "/invites/\(token)/accept")
+        }
+    }
+
+    static func declineInvite(token: String) async throws {
+        try await client.send(.post, "/invites/\(token)/decline")
     }
 
     static func me() async throws -> User {
@@ -225,8 +242,10 @@ enum API {
         try await client.request(.post, "/grants", body: EmailBody(email: email))
     }
 
-    static func acceptGrant(_ id: String) async throws -> Grant {
-        try await client.request(.post, "/grants/\(id)/accept")
+    static func acceptGrant(_ id: String, companyId: String? = nil) async throws -> Grant {
+        try await APIClient.$pinnedCompanyId.withValue(companyId) {
+            try await client.request(.post, "/grants/\(id)/accept")
+        }
     }
 
     static func declineGrant(_ id: String) async throws {

@@ -86,6 +86,8 @@ struct NotificationContent {
     var meta: String?
     var link: AppModel.DeepLink?
     var linkTitle: String?
+    /// Inline accept/decline for invite notifications the API reports a status for.
+    var inviteAction: InviteAction?
 
     var color: Color {
         switch tone {
@@ -147,6 +149,11 @@ struct NotificationContent {
                 ? "\(name) muhasebecin olarak fişlerini görmek istiyor"
                 : "\(name) seni muhasebecisi olarak eklemek istiyor"
             linkTitle = "Davete bak →"
+            if let status = n.inviteStatus, let id = p["grant_id"]?.string {
+                // payload.role is the inviter's role; the invite is for the other one.
+                inviteAction = InviteAction(kind: .grant, id: id, status: status, invitedRole: p["role"]?.string == "accountant" ? .client : .accountant, inviterName: nil)
+                linkTitle = nil
+            }
         case "member_invite":
             icon = .userPlus
             tone = .brand
@@ -154,6 +161,15 @@ struct NotificationContent {
             text = "\(p["inviter_name"]?.string ?? company) seni \(company) ekibine davet etti"
             link = p["membership_id"]?.string.map { .memberInviteId($0) }
             linkTitle = "Davete bak →"
+            if let status = n.inviteStatus, let id = p["membership_id"]?.string {
+                inviteAction = InviteAction(kind: .member, id: id, status: status, invitedRole: .client, inviterName: p["inviter_name"]?.string)
+                link = nil
+                linkTitle = nil
+            }
+        case "member_invite_declined":
+            icon = .x
+            tone = .neutral
+            text = "\(p["email"]?.string ?? "Davet edilen kişi"), \(p["company_name"]?.string ?? "şirket") ekip davetini reddetti"
         case "member_joined":
             icon = .userCheck
             tone = .success

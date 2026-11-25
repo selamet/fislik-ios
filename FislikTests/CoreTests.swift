@@ -261,3 +261,182 @@ final class WidgetCompanyTests: XCTestCase {
         XCTAssertEqual(data.headerLabel, "EKİN KAFE · \(TR.upper(Period.current.monthName))")
     }
 }
+
+final class InviteDecodingTests: XCTestCase {
+    func testInviteLookupDecodes() throws {
+        let json = """
+        {"kind":"grant","inviter_name":"Mehmet","company_name":null,"role":"client",
+         "email":"m@x.com","account_exists":true,"account_role":"client"}
+        """
+        let info = try APIClient.decoder.decode(InviteLookup.self, from: Data(json.utf8))
+        XCTAssertEqual(info.kind, .grant)
+        XCTAssertNil(info.companyName)
+        XCTAssertEqual(info.accountRole, .client)
+        XCTAssertEqual(info.invitedAccountRole, .client)
+    }
+
+    func testMemberInviteIsForClients() throws {
+        let json = """
+        {"kind":"member","inviter_name":null,"company_name":"ABC","role":"uploader",
+         "email":"d@x.com","account_exists":false,"account_role":null}
+        """
+        let info = try APIClient.decoder.decode(InviteLookup.self, from: Data(json.utf8))
+        XCTAssertEqual(info.invitedAccountRole, .client)
+        XCTAssertNil(info.accountRole)
+    }
+
+    func testAuthResponseWithJoinedViaInvite() throws {
+        let json = """
+        {"id":"u1","email":"d@x.com","full_name":"D","role":"client","access_token":"t",
+         "joined_via_invite":{"kind":"member","company_id":"c1","company_name":"ABC","role":"uploader","inviter_name":"S"}}
+        """
+        let auth = try APIClient.decoder.decode(AuthResponse.self, from: Data(json.utf8))
+        XCTAssertEqual(auth.joinedViaInvite?.companyId, "c1")
+        XCTAssertEqual(auth.joinedViaInvite?.kind, .member)
+    }
+
+    func testAuthResponseWithoutJoinedViaInvite() throws {
+        let json = #"{"id":"u1","email":"d@x.com","full_name":"D","role":"client","access_token":"t"}"#
+        let auth = try APIClient.decoder.decode(AuthResponse.self, from: Data(json.utf8))
+        XCTAssertNil(auth.joinedViaInvite)
+    }
+
+    func testNotificationInviteStatus() throws {
+        let json = """
+        {"id":"n1","type":"member_invite","payload":{"membership_id":"m1"},"read":false,
+         "created_at":"2026-11-25T10:00:00Z","invite_status":"pending"}
+        """
+        let note = try APIClient.decoder.decode(AppNotification.self, from: Data(json.utf8))
+        XCTAssertEqual(note.inviteStatus, "pending")
+    }
+}
+
+@MainActor
+final class InviteRoutingTests: XCTestCase {
+    override func tearDown() {
+        UserDefaults.standard.removeObject(forKey: "onboardingDone")
+        super.tearDown()
+    }
+
+    func testParsesBothInviteLinks() {
+        XCTAssertEqual(AppModel.parse(URL(string: "https://fislik.selamet.dev/uye-davet/abc")!), .memberInvite(token: "abc"))
+        XCTAssertEqual(AppModel.parse(URL(string: "https://fislik.selamet.dev/davet/xyz")!), .invite(token: "xyz"))
+        XCTAssertEqual(AppModel.inviteToken(of: .memberInvite(token: "abc")), "abc")
+        XCTAssertEqual(AppModel.inviteToken(of: .invite(token: "xyz")), "xyz")
+        XCTAssertNil(AppModel.inviteToken(of: .camera))
+    }
+
+    func testSkipsCompanySetupAfterJoiningThroughInvite() {
+        XCTAssertFalse(AppModel.skipsCompanySetup(joined: nil))
+        let joined = JoinedViaInvite(kind: .member, companyId: "c1", companyName: "ABC", role: "uploader", inviterName: nil)
+        XCTAssertTrue(AppModel.skipsCompanySetup(joined: joined))
+    }
+
+    func testInviteLinkSkipsIntroPager() {
+        let app = AppModel()
+        app.phase = .onboarding
+        app.handle(url: URL(string: "https://fislik.selamet.dev/uye-davet/abc")!)
+        XCTAssertEqual(app.phase, .auth)
+        XCTAssertEqual(app.pendingLink, .memberInvite(token: "abc"))
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "onboardingDone"))
+    }
+
+    func testOtherLinksKeepThePager() {
+        let app = AppModel()
+        app.phase = .onboarding
+        app.handle(url: URL(string: "https://fislik.selamet.dev/fis/r1")!)
+        XCTAssertEqual(app.phase, .onboarding)
+    }
+}
+
+final class InviteCopyTests: XCTestCase {
+    private func joined(_ kind: InviteKind, _ role: String, inviter: String? = nil) -> JoinedViaInvite {
+        JoinedViaInvite(kind: kind, companyId: "c1", companyName: "ABC", role: role, inviterName: inviter)
+    }
+
+    func testWelcomeCopyPerRole() {
+        XCTAssertEqual(InviteCopy.welcome(joined(.member, "uploader")).title, "ABC ekibine katıldın")
+        XCTAssertTrue(InviteCopy.welcome(joined(.member, "uploader")).opensCamera)
+        XCTAssertEqual(InviteCopy.welcome(joined(.member, "admin")).action, "Fişlere göz at")
+        XCTAssertEqual(InviteCopy.welcome(joined(.grant, "accountant")).title, "ABC artık mükelleflerinde")
+        XCTAssertEqual(InviteCopy.welcome(joined(.grant, "client", inviter: "Mehmet")).title, "Muhasebecin Mehmet bağlandı")
+    }
+
+    func testHeadline() {
+        let info = InviteLookup(kind: .member, inviterName: "S", companyName: "ABC", role: "uploader", email: "d@x", accountExists: false, accountRole: nil)
+        XCTAssertEqual(InviteCopy.headline(info), "ABC şirketine fiş yükleyici olarak davet edildin")
+    }
+}
+
+final class InviteActionStateTests: XCTestCase {
+    func testStateFromServerStatus() {
+        XCTAssertEqual(InviteActionsRow.State(status: "pending", local: nil), .open)
+        XCTAssertEqual(InviteActionsRow.State(status: "accepted", local: nil), .accepted)
+        XCTAssertEqual(InviteActionsRow.State(status: "closed", local: nil), .gone)
+    }
+
+    func testLocalOutcomeWins() {
+        XCTAssertEqual(InviteActionsRow.State(status: "pending", local: .declined), .declined)
+        XCTAssertEqual(InviteActionsRow.State(status: "pending", local: .gone), .gone)
+    }
+
+    @MainActor
+    func testInviteNotificationsCarryActions() {
+        let note = AppNotification(id: "n1", type: "member_invite", payload: ["membership_id": .string("m1"), "company_name": .string("ABC")], read: false, createdAt: .now, inviteStatus: "pending")
+        let content = NotificationContent(note, isAccountant: false, accountantName: nil)
+        XCTAssertEqual(content.inviteAction, InviteAction(kind: .member, id: "m1", status: "pending", invitedRole: .client, inviterName: nil))
+        XCTAssertNil(content.link)
+
+        let grant = AppNotification(id: "n2", type: "grant_invite", payload: ["grant_id": .string("g1"), "role": .string("accountant")], read: false, createdAt: .now, inviteStatus: "pending")
+        XCTAssertEqual(NotificationContent(grant, isAccountant: false, accountantName: nil).inviteAction?.invitedRole, .client)
+
+        let old = AppNotification(id: "n3", type: "member_invite", payload: ["membership_id": .string("m1")], read: false, createdAt: .now)
+        XCTAssertNil(NotificationContent(old, isAccountant: false, accountantName: nil).inviteAction)
+    }
+
+    @MainActor
+    func testMemberInviteDeclinedText() {
+        let note = AppNotification(id: "n4", type: "member_invite_declined", payload: ["email": .string("d@x.com"), "company_name": .string("ABC")], read: false, createdAt: .now)
+        XCTAssertEqual(NotificationContent(note, isAccountant: false, accountantName: nil).text, "d@x.com, ABC ekip davetini reddetti")
+    }
+}
+
+final class NoCompanyTests: XCTestCase {
+    func testNoCompanyOnlyAfterALoadedEmptyList() {
+        XCTAssertFalse(CompanyStore.showsNoCompany(loaded: false, companies: []))
+        XCTAssertTrue(CompanyStore.showsNoCompany(loaded: true, companies: []))
+        XCTAssertFalse(CompanyStore.showsNoCompany(loaded: true, companies: [CompanyMembership(id: "c1", name: "A", role: .owner)]))
+    }
+}
+
+@MainActor
+final class InviteReviewFixTests: XCTestCase {
+    private let joined = JoinedViaInvite(kind: .member, companyId: "c1", companyName: "ABC", role: "uploader", inviterName: nil)
+
+    func testWelcomeWaitsForTheSheetToClose() async {
+        let app = AppModel()
+        await app.didJoin(joined, deferWelcome: true)
+        XCTAssertNil(app.joined)
+        app.presentQueuedWelcome()
+        XCTAssertEqual(app.joined, joined)
+        app.presentQueuedWelcome()
+        XCTAssertEqual(app.joined, joined)
+    }
+
+    func testLoginThroughInviteSkipsCompanySetup() {
+        XCTAssertTrue(AppModel.skipsCompanySetup(joined: nil, inviteInProgress: true))
+        XCTAssertFalse(AppModel.skipsCompanySetup(joined: nil, inviteInProgress: false))
+    }
+
+    func testLeavingTheLandingForgetsTheInvite() {
+        let auth = AuthModel()
+        auth.path = [.invite(token: "a")]
+        auth.pendingInvite = PendingInvite(kind: .member, token: "a", role: .client)
+        auth.path.append(.rolePicker(registrationToken: "r"))
+        auth.syncInviteWithPath()
+        XCTAssertNotNil(auth.pendingInvite)
+        auth.path = []
+        auth.syncInviteWithPath()
+        XCTAssertNil(auth.pendingInvite)
+    }
+}

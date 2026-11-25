@@ -37,6 +37,8 @@ final class ClientRouter {
     var companyPath: [ClientRoute] = []
     /// Member invite being reviewed (universal link, push or in-app banner).
     var memberInvite: AcceptMemberInviteView.Source?
+    /// An invite link (either kind) opened while signed in.
+    var inviteLink: InviteLinkToken?
     var sheet: ClientSheet?
     var period: Period = .current
 

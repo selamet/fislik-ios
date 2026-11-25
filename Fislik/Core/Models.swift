@@ -22,6 +22,8 @@ struct AuthResponse: Codable {
     let fullName: String
     let role: UserRole
     let accessToken: String
+    /// Set by registration when an invite put the new account in a company or grant.
+    var joinedViaInvite: JoinedViaInvite? = nil
 
     var user: User { User(id: id, email: email, fullName: fullName, role: role) }
 }
@@ -294,6 +296,8 @@ struct AppNotification: Codable, Equatable, Identifiable {
     let payload: [String: JSONValue]
     var read: Bool
     let createdAt: Date
+    /// member_invite / grant_invite only: "pending", "accepted" or "closed".
+    var inviteStatus: String? = nil
 }
 
 struct NotificationPage: Codable {
@@ -419,4 +423,36 @@ struct MemberInviteInfo: Codable, Equatable {
     let inviterName: String?
     let email: String
     let accountExists: Bool
+}
+
+// MARK: Invite links (/uye-davet, /davet)
+
+enum InviteKind: String, Codable, Equatable {
+    case member, grant
+}
+
+/// `GET /invites/{token}`: what an invite link points at, for either kind.
+struct InviteLookup: Codable, Equatable {
+    let kind: InviteKind
+    let inviterName: String?
+    let companyName: String?
+    /// Member invites: the member role. Grants: the invited account role.
+    let role: String
+    let email: String
+    let accountExists: Bool
+    let accountRole: UserRole?
+
+    /// The account role the invite is for (member invites are for clients).
+    var invitedAccountRole: UserRole {
+        kind == .member ? .client : (role == "accountant" ? .accountant : .client)
+    }
+}
+
+/// Where accepting (or registering through) an invite put the user.
+struct JoinedViaInvite: Codable, Equatable {
+    let kind: InviteKind
+    let companyId: String?
+    let companyName: String?
+    let role: String
+    let inviterName: String?
 }
