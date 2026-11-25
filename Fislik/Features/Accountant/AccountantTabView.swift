@@ -79,7 +79,10 @@ struct AccountantTabView: View {
         }
         .animation(.easeOut(duration: 0.2), value: pathEmpty)
         .ignoresSafeArea(.keyboard)
-        .sheet(item: $router.inviteLink, onDismiss: { Task { await clients.load(router.period, force: true) } }) { link in
+        .sheet(item: $router.inviteLink, onDismiss: {
+            app.presentQueuedWelcome()
+            Task { await clients.load(router.period, force: true) }
+        }) { link in
             InviteSheetView(token: link.token)
         }
         .fullScreenCover(item: Binding(get: { app.joined }, set: { app.joined = $0 })) { joined in

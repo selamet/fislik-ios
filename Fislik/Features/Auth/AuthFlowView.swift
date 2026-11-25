@@ -42,7 +42,7 @@ final class AuthModel {
     func login(app: AppModel, email: String, password: String) async {
         await run({
             let auth = try await API.login(email: email.trimmingCharacters(in: .whitespaces), password: password)
-            await app.signedIn(auth)
+            await app.signedIn(auth, inviteInProgress: pendingInvite != nil)
             await acceptPendingInvite(app: app)
         }, map: { e in
             switch e.status {
@@ -94,7 +94,7 @@ final class AuthModel {
         switch result.status {
         case .loggedIn:
             guard let user = result.user else { throw SocialAuthError.failed }
-            await app.signedIn(user)
+            await app.signedIn(user, inviteInProgress: pendingInvite != nil)
             await acceptPendingInvite(app: app)
         case .needsRole:
             guard let token = result.registrationToken else { throw SocialAuthError.failed }
@@ -110,6 +110,13 @@ final class AuthModel {
             pendingInvite = nil
             await app.signedIn(auth)
         }, map: { e in e.status == 401 ? "Süre doldu, tekrar giriş yap." : nil })
+    }
+
+    /// Forgets the invite once its landing is no longer on the stack (the
+    /// visitor went back), so a later plain login doesn't accept it silently.
+    func syncInviteWithPath() {
+        let onInvite = path.contains { if case .invite = $0 { true } else { false } }
+        if !onInvite { pendingInvite = nil }
     }
 
     /// The registration field carrying the pending invite, when it is for this role.
@@ -167,6 +174,7 @@ struct AuthFlowView: View {
         .environment(model)
         .onAppear(perform: consumeLink)
         .onChange(of: app.pendingLink) { consumeLink() }
+        .onChange(of: model.path) { model.syncInviteWithPath() }
     }
 
     private func consumeLink() {

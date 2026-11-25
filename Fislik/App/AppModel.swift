@@ -47,6 +47,9 @@ final class AppModel {
     /// Set when an invite just put the user in a company or grant; the tab
     /// views show the welcome screen for it, then clear it.
     var joined: JoinedViaInvite?
+    /// A join waiting for the invite sheet to finish closing before the
+    /// welcome cover is presented (SwiftUI drops a cover requested mid-dismiss).
+    private var queuedJoin: JoinedViaInvite?
 
     @ObservationIgnored
     @AppStorage("onboardingDone") private var onboardingDone = false
@@ -120,7 +123,7 @@ final class AppModel {
 
     // MARK: Auth
 
-    func signedIn(_ auth: AuthResponse) async {
+    func signedIn(_ auth: AuthResponse, inviteInProgress: Bool = false) async {
         token = auth.accessToken
         Keychain.saveToken(auth.accessToken)
         if faceIDEnabled { _ = Keychain.saveBiometricToken(auth.accessToken) }
@@ -128,17 +131,17 @@ final class AppModel {
         sessionExpired = false
         onboardingDone = true
         if let joinedViaInvite = auth.joinedViaInvite { joined = joinedViaInvite }
-        await routeAfterLogin()
+        await routeAfterLogin(inviteInProgress: inviteInProgress)
         if let joinedViaInvite = auth.joinedViaInvite { await didJoin(joinedViaInvite) }
     }
 
-    private func routeAfterLogin() async {
+    private func routeAfterLogin(inviteInProgress: Bool = false) async {
         SessionCache.user = user
         if user?.role == .client {
             await CompanyStore.shared.load()
             await CompanyStore.shared.loadInvites()
         }
-        if user?.role == .client, !companySkipped, !Self.skipsCompanySetup(joined: joined),
+        if user?.role == .client, !companySkipped, !Self.skipsCompanySetup(joined: joined, inviteInProgress: inviteInProgress),
            (try? await API.company()) == .some(nil) {
             phase = .companySetup
         } else {
@@ -171,6 +174,7 @@ final class AppModel {
         token = nil
         user = nil
         joined = nil
+        queuedJoin = nil
         sessionExpired = false
         Keychain.clear()
         faceIDEnabled = false
@@ -217,12 +221,19 @@ final class AppModel {
 
     /// An invite put the user in a company or grant: make that company the
     /// active one (clients) and let the tab views show the welcome screen.
-    func didJoin(_ result: JoinedViaInvite) async {
-        joined = result
+    func didJoin(_ result: JoinedViaInvite, deferWelcome: Bool = false) async {
+        if deferWelcome { queuedJoin = result } else { joined = result }
         guard user?.role == .client, let companyId = result.companyId else { return }
         await CompanyStore.shared.load()
         CompanyStore.shared.select(companyId)
         if phase == .companySetup { phase = .main }
+    }
+
+    /// Shows the welcome cover for a join queued while a sheet was closing.
+    func presentQueuedWelcome() {
+        guard let queued = queuedJoin else { return }
+        queuedJoin = nil
+        joined = queued
     }
 
     /// The token of an invite link (either kind), nil for other links.
@@ -234,8 +245,10 @@ final class AppModel {
     }
 
     /// Joining through an invite replaces the new-user company setup.
-    static func skipsCompanySetup(joined: JoinedViaInvite?) -> Bool {
-        joined != nil
+    /// Logging in to accept an invite skips it too: the invite is accepted
+    /// (or its sheet opens) right after, and setup would flash or block it.
+    static func skipsCompanySetup(joined: JoinedViaInvite?, inviteInProgress: Bool = false) -> Bool {
+        joined != nil || inviteInProgress
     }
 
     /// Accepts `https://fislik.selamet.dev/davet/{token}`, `/sifre-sifirla/{token}`, `/fis/{id}` and `fislik://…` equivalents.

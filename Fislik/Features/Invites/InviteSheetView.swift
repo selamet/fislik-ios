@@ -129,8 +129,9 @@ struct InviteSheetView: View {
         defer { busy = false }
         do {
             let joined = try await API.acceptInvite(token: token, companyId: companyId)
+            // The tab view presents the welcome once this sheet has closed.
+            await app.didJoin(joined, deferWelcome: true)
             dismiss()
-            await app.didJoin(joined)
         } catch let e as APIError {
             error = switch e.status {
             case 403: "Bu daveti yalnızca şirketin sahibi ya da yöneticisi kabul edebilir."

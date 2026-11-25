@@ -89,7 +89,7 @@ struct ClientTabView: View {
         .fullScreenCover(item: $router.memberInvite) { source in
             AcceptMemberInviteView(source: source)
         }
-        .sheet(item: $router.inviteLink) { link in
+        .sheet(item: $router.inviteLink, onDismiss: { app.presentQueuedWelcome() }) { link in
             InviteSheetView(token: link.token)
         }
         .fullScreenCover(item: Binding(get: { app.joined }, set: { app.joined = $0 })) { joined in

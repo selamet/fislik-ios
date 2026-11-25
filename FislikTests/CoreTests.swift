@@ -408,3 +408,35 @@ final class NoCompanyTests: XCTestCase {
         XCTAssertFalse(CompanyStore.showsNoCompany(loaded: true, companies: [CompanyMembership(id: "c1", name: "A", role: .owner)]))
     }
 }
+
+@MainActor
+final class InviteReviewFixTests: XCTestCase {
+    private let joined = JoinedViaInvite(kind: .member, companyId: "c1", companyName: "ABC", role: "uploader", inviterName: nil)
+
+    func testWelcomeWaitsForTheSheetToClose() async {
+        let app = AppModel()
+        await app.didJoin(joined, deferWelcome: true)
+        XCTAssertNil(app.joined)
+        app.presentQueuedWelcome()
+        XCTAssertEqual(app.joined, joined)
+        app.presentQueuedWelcome()
+        XCTAssertEqual(app.joined, joined)
+    }
+
+    func testLoginThroughInviteSkipsCompanySetup() {
+        XCTAssertTrue(AppModel.skipsCompanySetup(joined: nil, inviteInProgress: true))
+        XCTAssertFalse(AppModel.skipsCompanySetup(joined: nil, inviteInProgress: false))
+    }
+
+    func testLeavingTheLandingForgetsTheInvite() {
+        let auth = AuthModel()
+        auth.path = [.invite(token: "a")]
+        auth.pendingInvite = PendingInvite(kind: .member, token: "a", role: .client)
+        auth.path.append(.rolePicker(registrationToken: "r"))
+        auth.syncInviteWithPath()
+        XCTAssertNotNil(auth.pendingInvite)
+        auth.path = []
+        auth.syncInviteWithPath()
+        XCTAssertNil(auth.pendingInvite)
+    }
+}

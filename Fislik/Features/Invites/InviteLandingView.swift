@@ -137,8 +137,10 @@ struct InviteLandingView: View {
             email = lookup.email
             auth.pendingInvite = PendingInvite(kind: lookup.kind, token: token, role: lookup.invitedAccountRole)
         } catch let e as APIError {
+            auth.pendingInvite = nil
             loadError = e.status == 404 ? "Bu davet bulunamadı ya da daha önce kullanılmış." : e.message
         } catch {
+            auth.pendingInvite = nil
             loadError = APIError.transport(code: 0).message
         }
     }
