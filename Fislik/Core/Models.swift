@@ -12,8 +12,13 @@ struct User: Codable, Equatable, Identifiable {
     let fullName: String
     let role: UserRole
     var impersonated: Bool = false
+    /// False for a classic account that hasn't entered its e-mailed code yet
+    /// (such accounts don't receive invites by address). Absent on older
+    /// APIs, which means verified.
+    var emailVerified: Bool? = nil
 
     var initials: String { fullName.initials }
+    var needsEmailVerification: Bool { emailVerified == false }
 }
 
 struct AuthResponse: Codable {
@@ -24,8 +29,9 @@ struct AuthResponse: Codable {
     let accessToken: String
     /// Set by registration when an invite put the new account in a company or grant.
     var joinedViaInvite: JoinedViaInvite? = nil
+    var emailVerified: Bool? = nil
 
-    var user: User { User(id: id, email: email, fullName: fullName, role: role) }
+    var user: User { User(id: id, email: email, fullName: fullName, role: role, emailVerified: emailVerified) }
 }
 
 struct OAuthResult: Codable {

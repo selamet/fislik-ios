@@ -11,6 +11,8 @@ enum DemoMode {
     }
 
     static var isOn: Bool { role != nil }
+    /// `-demo-unverified`: the account starts with an unverified e-mail.
+    static var verified = !ProcessInfo.processInfo.arguments.contains("-demo-unverified")
     static let token = "demo-token"
 
     static func install() {
@@ -298,6 +300,14 @@ final class DemoData: @unchecked Sendable {
         }
     }
 
+    private func demoUser() -> [String: Any] {
+        var user: [String: Any] = DemoMode.role == .accountant
+            ? ["id": "acc-1", "email": "zeynep@kayamusavirlik.com", "full_name": "Zeynep Kaya", "role": "accountant", "impersonated": false]
+            : ["id": "c1", "email": "ayse@yildirimticaret.com", "full_name": "Ayşe Yıldırım", "role": "client", "impersonated": false]
+        user["email_verified"] = DemoMode.verified
+        return user
+    }
+
     func respond(method: String, url: URL, body: Data?) -> (Int, Data, String) {
         lock.lock()
         defer { lock.unlock() }
@@ -320,9 +330,14 @@ final class DemoData: @unchecked Sendable {
 
         switch (method, path) {
         case ("GET", "/auth/me"):
-            return ok(role == .accountant
-                      ? ["id": "acc-1", "email": "zeynep@kayamusavirlik.com", "full_name": "Zeynep Kaya", "role": "accountant", "impersonated": false]
-                      : ["id": "c1", "email": "ayse@yildirimticaret.com", "full_name": "Ayşe Yıldırım", "role": "client", "impersonated": false])
+            return ok(demoUser())
+        case ("POST", "/auth/email/verify"):
+            // `-demo-unverified`: 123456 is the right code.
+            guard bodyJSON["code"] as? String == "123456" else { return ok(["detail": "Invalid code"], 400) }
+            DemoMode.verified = true
+            return ok(demoUser())
+        case ("POST", "/auth/email/resend"):
+            return none
         case ("GET", "/receipts"), ("GET", "/clients/c1/receipts"):
             return ok(month(period).map(json))
         case ("GET", "/receipts/summary"):

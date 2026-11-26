@@ -14,6 +14,7 @@ enum API {
     struct ChangePasswordBody: Encodable { let currentPassword, newPassword: String }
     struct EmailBody: Encodable { let email: String }
     struct ResetConfirmBody: Encodable { let token, newPassword: String }
+    struct VerifyEmailBody: Encodable { let code: String }
 
     static func register(email: String, password: String, fullName: String, role: UserRole, inviteToken: String?, memberInviteToken: String? = nil) async throws -> AuthResponse {
         try await client.request(.post, "/auth/register", body: RegisterBody(email: email, password: password, fullName: fullName, role: role, inviteToken: inviteToken, memberInviteToken: memberInviteToken), authorized: false)
@@ -54,6 +55,14 @@ enum API {
 
     static func me() async throws -> User {
         try await client.request(.get, "/auth/me")
+    }
+
+    static func verifyEmail(code: String) async throws -> User {
+        try await client.request(.post, "/auth/email/verify", body: VerifyEmailBody(code: code))
+    }
+
+    static func resendEmailCode() async throws {
+        try await client.send(.post, "/auth/email/resend")
     }
 
     static func deleteAccount() async throws {
