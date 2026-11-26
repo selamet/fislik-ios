@@ -295,6 +295,25 @@ final class InviteDecodingTests: XCTestCase {
         XCTAssertEqual(auth.joinedViaInvite?.kind, .member)
     }
 
+    func testEmailVerifiedFlag() throws {
+        let unverified = try APIClient.decoder.decode(User.self, from: Data(#"{"id":"u1","email":"d@x.com","full_name":"D","role":"client","impersonated":false,"email_verified":false}"#.utf8))
+        XCTAssertTrue(unverified.needsEmailVerification)
+        let verified = try APIClient.decoder.decode(User.self, from: Data(#"{"id":"u1","email":"d@x.com","full_name":"D","role":"client","impersonated":false,"email_verified":true}"#.utf8))
+        XCTAssertFalse(verified.needsEmailVerification)
+        // Older API without the field: treated as verified.
+        let legacy = try APIClient.decoder.decode(User.self, from: Data(#"{"id":"u1","email":"d@x.com","full_name":"D","role":"client","impersonated":false}"#.utf8))
+        XCTAssertFalse(legacy.needsEmailVerification)
+        let auth = try APIClient.decoder.decode(AuthResponse.self, from: Data(#"{"id":"u1","email":"d@x.com","full_name":"D","role":"client","access_token":"t","email_verified":false}"#.utf8))
+        XCTAssertTrue(auth.user.needsEmailVerification)
+    }
+
+    func testEmailCodeInput() {
+        XCTAssertEqual(EmailCodeCopy.sanitize("12a 3456789"), "123456")
+        XCTAssertEqual(EmailCodeCopy.sanitize(""), "")
+        XCTAssertEqual(EmailCodeCopy.message(for: .server(status: 400, detail: "Code expired")), "Kodun süresi doldu. Yeni kod iste.")
+        XCTAssertEqual(EmailCodeCopy.message(for: .server(status: 400, detail: "Invalid code")), "Kod hatalı. Tekrar dene.")
+    }
+
     func testAuthResponseWithoutJoinedViaInvite() throws {
         let json = #"{"id":"u1","email":"d@x.com","full_name":"D","role":"client","access_token":"t"}"#
         let auth = try APIClient.decoder.decode(AuthResponse.self, from: Data(json.utf8))

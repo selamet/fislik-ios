@@ -163,6 +163,20 @@ final class AppModel {
         }
     }
 
+    /// The e-mail code was accepted: keep the fresh user and pull in what the
+    /// verified address now unlocks (member invites, grants, notifications).
+    func emailVerified(_ verified: User) {
+        var updated = verified
+        updated.impersonated = user?.impersonated ?? false
+        user = updated
+        SessionCache.user = updated
+        Task {
+            await CompanyStore.shared.loadInvites()
+            await ReceiptStore.shared.refreshGrants()
+            await NotificationsStore.shared.refresh()
+        }
+    }
+
     func signOut() async {
         if let deviceToken = PushManager.shared.deviceToken {
             try? await API.unregisterDevice(token: deviceToken)

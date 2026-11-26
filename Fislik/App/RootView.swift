@@ -45,13 +45,23 @@ struct MainView: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        Group {
-            if app.isAccountant {
-                AccountantTabView()
-            } else {
-                ClientTabView()
+        VStack(spacing: 0) {
+            // A row of its own (not a safe-area inset): the tab screens draw
+            // their headers into the top safe area, so an inset would sit on
+            // top of them.
+            if app.user?.needsEmailVerification == true && app.user?.impersonated != true {
+                EmailVerifyBanner()
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            Group {
+                if app.isAccountant {
+                    AccountantTabView()
+                } else {
+                    ClientTabView()
+                }
             }
         }
+        .animation(.easeOut(duration: 0.25), value: app.user?.needsEmailVerification)
         .overlay(alignment: .bottom) {
             if app.sessionExpired {
                 SessionExpiredBanner { app.signOutLocally() }
