@@ -54,6 +54,12 @@ Gizlilik Politikası: https://fislik.selamet.dev/gizlilik
 ## Keywords (100, comma-separated)
 fiş,fatura,kdv,muhasebe,muhasebeci,mali müşavir,gider,e-fatura,e-arşiv,tarayıcı,vergi,makbuz
 
+## What's New (1.3)
+• Davet bağlantısıyla katılım: şirket ekibine ya da muhasebecine gelen davet bağlantısından doğrudan katıl, karşılama ekranı seni yönlendirsin.
+• Bildirimlerden davetleri kabul et ya da reddet.
+• E-posta doğrulama: e-postayla kayıt olduysan gönderdiğimiz 6 haneli kodu gir; adresine gelen davetler hesabına öyle bağlansın.
+• Şirketi olmayan hesaplar için yeni şirket başlatma ekranı ve küçük iyileştirmeler.
+
 ## What's New (1.2)
 • Harcama raporları: kişi, kategori ve satıcıya göre aylık harcama, geçen aya göre değişim ve son 6 ayın seyri.
 • Elle gider: kira, maaş, abonelik gibi fişi olmayan harcamaları ekle.
